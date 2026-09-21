@@ -62,7 +62,8 @@ class Generator(ABC):
         instance.difficulty = difficulty
         instance.requires_code = self.requires_code
         instance.uniqueness = self.uniqueness
-        instance.answer_kind = self.answer_kind
+        if not instance.answer_kind:
+            instance.answer_kind = self.answer_kind
         instance.version = self.version
         if not instance.checker:
             instance.checker = self.checker

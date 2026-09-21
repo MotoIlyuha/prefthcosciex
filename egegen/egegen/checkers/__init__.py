@@ -1,6 +1,6 @@
 """Answer checkers.
 
-Each :class:`~egegen.core.types.AnswerFormat` maps to a checker that normalises a
+Each :class:`~egegen.core.types.AnswerKind` maps to a checker that normalises a
 student's raw input and compares it to the canonical answer. Normalisation is
 deliberately forgiving about whitespace and separators (a student typing "12, 30"
 means the same as "12 30") and deliberately strict about everything else.
@@ -13,7 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from egegen.core.types import AnswerFormat
+from egegen.core.types import AnswerKind
 
 _SEPARATORS = re.compile(r"[\s,;]+")
 
@@ -108,7 +108,7 @@ def check_string(raw: str, expected: str, options: dict[str, Any] | None = None)
 
 Checker = Callable[[str, str, "dict[str, Any] | None"], CheckResult]
 
-CHECKERS: dict[AnswerFormat, Checker] = {
+CHECKERS: dict[AnswerKind, Checker] = {
     "int": check_int,
     "float": check_float,
     "letters": check_letters,
@@ -119,16 +119,16 @@ CHECKERS: dict[AnswerFormat, Checker] = {
 
 
 def check(
-    answer_format: AnswerFormat,
+    answer_kind: AnswerKind,
     raw: str,
     expected: str,
     options: dict[str, Any] | None = None,
 ) -> CheckResult:
-    """Dispatch to the checker for ``answer_format``."""
+    """Dispatch to the checker for ``answer_kind``."""
     try:
-        checker = CHECKERS[answer_format]
+        checker = CHECKERS[answer_kind]
     except KeyError as exc:
-        raise ValueError(f"unknown answer format {answer_format!r}") from exc
+        raise ValueError(f"unknown answer kind {answer_kind!r}") from exc
     return checker(raw, expected, options)
 
 

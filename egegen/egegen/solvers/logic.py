@@ -52,32 +52,43 @@ class Node:
                     out.append(v)
         return out
 
-    def to_text(self, parent_prec: int = -1) -> str:
-        """Render with the minimum parentheses the exam's precedence rules require."""
-        if self.op == "var":
-            return self.var
-        if self.op == "not":
-            assert self.left is not None
-            inner = self.left.to_text(PRECEDENCE["not"])
-            return f"¬{inner}"
-        assert self.left is not None and self.right is not None
-        prec = PRECEDENCE[self.op]
-        text = f"{self.left.to_text(prec)} {SYMBOL[self.op]} {self.right.to_text(prec + 1)}"
-        return f"({text})" if prec < parent_prec else text
+    def to_text(self, top: bool = True) -> str:
+        """Render the formula the way FIPI writes it: nesting is always explicit.
 
-    def to_python(self, parent_prec: int = -1) -> str:
+        Relying on the ¬ ∧ ∨ → ≡ precedence would be correct but easy to misread, and
+        a misread statement is a wrong answer through no fault of the student.
+        """
         if self.op == "var":
             return self.var
         if self.op == "not":
             assert self.left is not None
-            return f"not {self.left.to_python(PRECEDENCE['not'])}"
+            inner = self.left.to_text(top=False)
+            return f"¬{inner}" if self.left.op == "var" else f"¬({inner})"
         assert self.left is not None and self.right is not None
-        prec = PRECEDENCE[self.op]
         text = (
-            f"{self.left.to_python(prec)} {PY_SYMBOL[self.op]} "
-            f"{self.right.to_python(prec + 1)}"
+            f"{self.left.to_text(top=False)} {SYMBOL[self.op]} "
+            f"{self.right.to_text(top=False)}"
         )
-        return f"({text})" if prec < parent_prec else text
+        return text if top else f"({text})"
+
+    def to_python(self, top: bool = True) -> str:
+        """Python source for the formula, fully parenthesised.
+
+        Two traps make minimal parentheses unsafe here: ``not`` binds *looser* than
+        the comparison operators that stand in for → and ≡, and Python chains
+        comparisons, so ``x <= y == z`` would silently mean something else.
+        """
+        if self.op == "var":
+            return self.var
+        if self.op == "not":
+            assert self.left is not None
+            return f"(not {self.left.to_python(top=False)})"
+        assert self.left is not None and self.right is not None
+        text = (
+            f"{self.left.to_python(top=False)} {PY_SYMBOL[self.op]} "
+            f"{self.right.to_python(top=False)}"
+        )
+        return text if top else f"({text})"
 
 
 def var(name: str) -> Node:
@@ -111,33 +122,55 @@ def column_orders(
     formula: Node,
     variables: Sequence[str],
     rows: Sequence[Row],
-    value: bool,
+    values: Sequence[bool],
 ) -> list[str]:
     """Every column ordering consistent with the partially filled table.
 
-    A permutation ``p`` means "column j holds variable ``variables[p[j]]``". Distinct
-    rows must map to distinct satisfying assignments (a table never repeats a row).
+    A permutation ``p`` means "column j holds variable ``variables[p[j]]``".
+    ``values[i]`` is the value of F in row ``i`` (the exam's mixed-value variant gives
+    different values per row). Distinct rows must map to distinct assignments: a truth
+    table never lists the same variable assignment twice.
     """
-    sets = satisfying_sets(formula, variables, value)
+    by_value = {
+        value: satisfying_sets(formula, variables, value) for value in set(values)
+    }
+    return column_orders_with_pools(by_value, variables, rows, values)
+
+
+def column_orders_with_pools(
+    by_value: Mapping[bool, Sequence[tuple[int, ...]]],
+    variables: Sequence[str],
+    rows: Sequence[Row],
+    values: Sequence[bool],
+) -> list[str]:
+    """Same as :func:`column_orders` with the satisfying sets already computed.
+
+    The task-2 generator calls this once per candidate row while building the table,
+    so recomputing the truth table each time would dominate generation cost.
+    """
     found: list[str] = []
     n = len(variables)
     for p in permutations(range(n)):
-        if _order_fits(rows, sets, p, n):
+        if _order_fits(rows, values, by_value, p, n):
             found.append("".join(variables[i] for i in p))
     return found
 
 
 def _order_fits(
-    rows: Sequence[Row], sets: Sequence[tuple[int, ...]], p: tuple[int, ...], n: int
+    rows: Sequence[Row],
+    values: Sequence[bool],
+    by_value: Mapping[bool, Sequence[tuple[int, ...]]],
+    p: tuple[int, ...],
+    n: int,
 ) -> bool:
     """True when each row can be matched to a distinct satisfying assignment."""
+    index: dict[tuple[int, ...], int] = {}
     candidates: list[list[int]] = []
-    for row in rows:
-        matches = [
-            idx
-            for idx, s in enumerate(sets)
-            if all(row[j] is None or row[j] == s[p[j]] for j in range(n))
-        ]
+    for row, value in zip(rows, values, strict=True):
+        matches: list[int] = []
+        for s in by_value[value]:
+            if all(row[j] is None or row[j] == s[p[j]] for j in range(n)):
+                matches.append(index.setdefault(s, len(index)))
         if not matches:
             return False
         candidates.append(matches)

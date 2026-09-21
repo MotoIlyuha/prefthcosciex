@@ -60,11 +60,13 @@ class Instance:
     seed: int
     statement_md: str
     answer: str
-    answer_kind: AnswerKind
-    checker: str
     solution_steps: list[str]
-    method_card_id: str
-    target_seconds: int
+    answer_kind: AnswerKind | str = ""
+    """Left empty by ``build`` to inherit the generator's default; a subtype that
+    answers in a different shape (task 4 returns a code word, not a count) sets it."""
+    checker: str = ""
+    method_card_id: str = ""
+    target_seconds: int = 0
     hidden_seed: int = 0
     """Seed of a sibling instance used to re-check submitted code server-side."""
     reference_code: str | None = None

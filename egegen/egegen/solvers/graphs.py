@@ -168,10 +168,12 @@ def degree_signature(matrix: Sequence[Sequence[int]]) -> list[tuple[int, tuple[i
 def matchings(
     figure: Sequence[Sequence[int]], table: Sequence[Sequence[int]]
 ) -> Iterable[tuple[int, ...]]:
-    """Every bijection figure-vertex -> table-row consistent with both weight matrices.
+    """Every bijection figure-vertex -> table-row consistent with both adjacencies.
 
-    Task 1 is only well-posed when the asked quantity is the same under *all* of
-    them, which is what the generator checks before releasing an instance.
+    Both matrices are read as adjacency (non-zero means "there is an edge"): the
+    figure in task 1 carries no weights, so only the shape can be matched. Task 1 is
+    well-posed only when the asked quantity is the same under *all* of these
+    bijections, which is what the generator checks before releasing an instance.
     """
     n = len(figure)
     sig_f = degree_signature(figure)
@@ -187,7 +189,9 @@ def matchings(
         for j in range(n):
             if used[j] or sig_f[i] != sig_t[j]:
                 continue
-            if all(figure[i][k] == table[j][assignment[k]] for k in range(i)):
+            if all(
+                bool(figure[i][k]) == bool(table[j][assignment[k]]) for k in range(i)
+            ):
                 used[j] = True
                 assignment.append(j)
                 yield from backtrack()
