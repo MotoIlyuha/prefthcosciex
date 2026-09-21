@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.coverage
+coverage.xml
+htmlcov/
+
+# Node
+node_modules/
+client/dist/
+client/.vite/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# Vendored heavy assets (fetched by scripts/vendor-pyodide.sh)
+client/public/pyodide/*
+!client/public/pyodide/.gitkeep
+
+# Secrets & local state
+.env
+.env.local
+*.pem
+*.key
+!.env.example
+infra/.env.stage
+
+# Misc
+.DS_Store
+*.log
+/tmp/
+.artifacts/

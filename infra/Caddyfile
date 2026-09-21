@@ -1,0 +1,42 @@
+# Bayt reverse proxy. SITE_ADDRESS is ":80" locally and the real domain on stage
+# (Caddy then provisions TLS automatically via ACME).
+{
+	admin off
+	email admin@bayt.local
+}
+
+{$SITE_ADDRESS} {
+	encode gzip zstd
+
+	# Security headers. CSP is deliberately strict: no external origins at all,
+	# which is why Pyodide is vendored into the client bundle instead of a CDN.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		-Server
+	}
+
+	# Pyodide needs wasm-unsafe-eval; everything else stays self-only.
+	header /* Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob:; worker-src 'self' blob:; frame-ancestors https://web.telegram.org https://telegram.org 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle /bot/webhook {
+		reverse_proxy bot:8090
+	}
+
+	handle /s3/* {
+		uri strip_prefix /s3
+		reverse_proxy minio:9000
+	}
+
+	handle {
+		reverse_proxy client:80
+	}
+}

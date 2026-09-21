@@ -1,0 +1,27 @@
+# Stage overlay: real TLS on 80/443 via Caddy, plus the nightly backup sidecar.
+# Usage: docker compose -f compose.yaml -f compose.stage.yaml up -d --build
+services:
+  caddy:
+    ports: !override
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${STAGE_SITE_ADDRESS}
+
+  api:
+    environment:
+      BAYT_ENV: stage
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: [.env]
+    depends_on:
+      postgres: {condition: service_healthy}
+    volumes:
+      - ./infra/scripts:/scripts:ro
+      - backups:/backups
+    entrypoint: ["/bin/sh", "/scripts/backup-loop.sh"]
+
+volumes:
+  backups:

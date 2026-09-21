@@ -1,0 +1,55 @@
+# ---------------------------------------------------------------------------
+# FIPI-2027 format knobs for the parametric tasks 10, 13, 23 and 27.
+#
+# The draft demo version was published 28.08.2026; the approved one lands in the
+# first half of November 2026. When it does, change ONLY this file — the answer
+# transform of task 10, the input format of task 23 and the answer layout of 27
+# are read from here at generation time, never hard-coded.
+#
+# After cross-checking against the approved demo: set `approved: true` and update
+# `version`, `source_note` and `banner_ru`.
+# ---------------------------------------------------------------------------
+version: "2027-draft-2026-08-28"
+source_note: >-
+  Проект демоверсии ФИПИ от 28.08.2026 (обсуждение до 30.09.2026).
+  Утверждённая версия ожидается в первой половине ноября 2026 —
+  сверить формулировки 10, 13, 23 и формат ответа 27.
+banner_ru: >-
+  Формат заданий 10, 13, 23 и 27 соответствует проекту демоверсии ФИПИ
+  от 28.08.2026. После утверждения демоверсии (ноябрь) мы обновим формулировки
+  и сообщим, что именно изменилось.
+approved: false
+
+# Задание 10 — маска подсети. Ответ 2027 — сумма октетов найденного адреса.
+t10:
+  answer_transform: octet_sum   # octet_sum | address_no_dots | number
+  min_prefix: 16
+  max_prefix: 30
+
+# Задание 13 — анализ хода исполнения алгоритма (бывшее 23).
+t13:
+  answer_transform: number
+  commands: [add1, mul2]        # add1 add2 add3 mul2 mul3 (см. egegen.solvers.executor)
+  min_a: 1
+  max_b: 120
+  answer_min: 3
+  answer_max: 5000
+
+# Задание 23 — графы (новое в 2027). Формат входа переключается без правки кода.
+t23:
+  graph_input_format: matrix_ods   # matrix_ods | edges_txt | figure
+  weighted_min_nodes: 7
+  weighted_max_nodes: 14
+  dag_min_nodes: 8
+  dag_max_nodes: 20
+  dag_answer_min: 5
+  dag_answer_max: 5000
+  max_weight: 30
+
+# Задание 27 — два числа в одну строку (изменение 2027).
+t27:
+  answer_layout: one_line_pair     # one_line_pair | two_lines
+  separator: " "
+  file_a_size: 10000
+  file_b_size: 1000000
+  mini_b_size: 100000
