@@ -17,6 +17,14 @@ from egegen.core.types import Instance, Uniqueness
 PLACEHOLDER = re.compile(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}")
 """Leftover ``{name}`` in a statement means a template was rendered with a gap."""
 
+_CODE_BLOCK = re.compile(r"```.*?```", re.DOTALL)
+_INLINE_CODE = re.compile(r"`[^`\n]*`")
+
+
+def _prose_only(text: str) -> str:
+    """Strip code so a Python f-string in a worked solution is not mistaken for a gap."""
+    return _INLINE_CODE.sub("", _CODE_BLOCK.sub("", text))
+
 
 @dataclass(slots=True)
 class CheckReport:
@@ -84,14 +92,15 @@ def _check_determinism(
 def _check_statement(instance: Instance, report: CheckReport) -> None:
     if not instance.statement_md.strip():
         report.failures.append("empty statement")
-    leftover = PLACEHOLDER.findall(instance.statement_md)
+    leftover = PLACEHOLDER.findall(_prose_only(instance.statement_md))
     if leftover:
         report.failures.append(f"unfilled placeholders in statement: {leftover}")
     if not instance.solution_steps:
         report.failures.append("no solution steps")
     for step in instance.solution_steps:
-        if PLACEHOLDER.findall(step):
-            report.failures.append("unfilled placeholder in solution")
+        gaps = PLACEHOLDER.findall(_prose_only(step))
+        if gaps:
+            report.failures.append(f"unfilled placeholder in solution: {gaps}")
             break
     if instance.requires_code and instance.reference_code is None:
         report.failures.append("code task without reference_code")

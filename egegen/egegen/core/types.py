@@ -76,7 +76,9 @@ class Instance:
     assets: list[Attachment] = field(default_factory=list)
     requires_code: bool = False
     checker_options: dict[str, Any] = field(default_factory=dict)
-    uniqueness: Uniqueness = Uniqueness.FUNCTIONAL
+    uniqueness: Uniqueness | None = None
+    """Left unset by ``build`` to inherit the generator's default; a subtype whose
+    answer space can be swept while its siblings' cannot sets it per instance."""
     template_id: str = ""
     meta: dict[str, Any] = field(default_factory=dict)
     """Generator parameters. Feeds the solvers and analytics; never sent to a client."""
