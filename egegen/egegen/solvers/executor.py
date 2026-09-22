@@ -78,8 +78,16 @@ def count_programs_bounded(
     return f(a, max_len)
 
 
-def count_programs_naive(a: int, b: int, commands: Sequence[str], max_len: int = 24) -> int:
-    """Breadth-first enumeration of programs — the independent cross-check."""
+def count_programs_naive(
+    a: int, b: int, commands: Sequence[str], max_len: int | None = None
+) -> int:
+    """Breadth-first enumeration of programs — the independent cross-check.
+
+    Every monotone command raises the value by at least one, so ``b - a + 1`` steps
+    is enough to reach ``b``; a smaller cap would silently undercount.
+    """
+    if max_len is None:
+        max_len = max(1, b - a + 1)
     fns = [COMMAND_LIBRARY[c][1] for c in commands]
     total = 0
     frontier = [a]

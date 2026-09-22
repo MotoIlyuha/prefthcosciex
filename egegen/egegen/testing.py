@@ -17,6 +17,9 @@ from egegen.core.types import Instance, Uniqueness
 PLACEHOLDER = re.compile(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}")
 """Leftover ``{name}`` in a statement means a template was rendered with a gap."""
 
+_STRAY_SCRIPT = re.compile(r"[\u3000-\u9fff\u0600-\u06ff\u0e00-\u0e7f]")
+"""CJK, Arabic or Thai in a Russian statement means a character slipped in."""
+
 _CODE_BLOCK = re.compile(r"```.*?```", re.DOTALL)
 _INLINE_CODE = re.compile(r"`[^`\n]*`")
 
@@ -104,6 +107,13 @@ def _check_statement(instance: Instance, report: CheckReport) -> None:
             break
     if instance.requires_code and instance.reference_code is None:
         report.failures.append("code task without reference_code")
+    for label, text in (
+        ("statement", instance.statement_md),
+        ("solution", instance.solution_md),
+    ):
+        stray = _STRAY_SCRIPT.findall(text)
+        if stray:
+            report.failures.append(f"stray non-Russian characters in {label}: {stray[:5]}")
 
 
 def _check_answer_format(instance: Instance, report: CheckReport) -> None:
