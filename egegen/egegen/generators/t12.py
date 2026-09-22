@@ -17,7 +17,7 @@ from egegen.core.rng import Rng
 from egegen.core.templates import render
 from egegen.core.types import Instance, Uniqueness
 
-STEP_LIMIT = 200_000
+STEP_LIMIT = 60_000
 MAX_LENGTH = 600
 
 
@@ -125,14 +125,15 @@ class Task12(Generator):
         return rules
 
     def _random_start(self, rng: Rng, symbols: str, difficulty: int, subtype: str) -> str:
+        # Simulation cost grows roughly with the square of the length, and the whole
+        # instance has to be produced (and cross-checked) inside 200 ms.
         if subtype == "12.5_long_string":
-            blocks = [
-                (rng.choice(symbols), rng.randint(40, 90)) for _ in range(len(symbols))
-            ]
+            span = (34, 62)
         elif difficulty <= 2:
-            blocks = [(rng.choice(symbols), rng.randint(5, 14)) for _ in range(len(symbols))]
+            span = (5, 14)
         else:
-            blocks = [(rng.choice(symbols), rng.randint(12, 40)) for _ in range(len(symbols))]
+            span = (12, 30)
+        blocks = [(rng.choice(symbols), rng.randint(*span)) for _ in range(len(symbols))]
         return "".join(ch * n for ch, n in blocks)[:MAX_LENGTH]
 
     def _format_start(self, meta: dict[str, Any]) -> str:

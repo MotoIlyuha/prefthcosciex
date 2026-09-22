@@ -110,6 +110,49 @@ def decreasing_moves(subs: Sequence[int]) -> MoveFn:
     return moves
 
 
+def best_win_depth(
+    state: State,
+    moves: MoveFn,
+    is_final: Callable[[State], bool],
+    max_depth: int = 3,
+) -> int | None:
+    """Fewest own moves in which the player to move can force a win, or ``None``.
+
+    Iterative deepening with no memoisation — deliberately a different shape from
+    :class:`GameAnalyzer`, so the two disagree whenever one of them is wrong.
+    """
+    for depth in range(1, max_depth + 1):
+        if forces_win(state, moves, is_final, depth):
+            return depth
+    return None
+
+
+def forces_win(
+    state: State,
+    moves: MoveFn,
+    is_final: Callable[[State], bool],
+    depth: int,
+) -> bool:
+    """True when the player to move wins within ``depth`` of their own moves.
+
+    A player with no legal move loses, which is how the "remove stones" games end.
+    """
+    if depth <= 0:
+        return False
+    for m in moves(state):
+        if is_final(m):
+            return True
+        replies = moves(m)
+        if not replies:
+            return True  # the opponent is stuck after our move
+        if all(
+            not is_final(r) and forces_win(r, moves, is_final, depth - 1)
+            for r in replies
+        ):
+            return True
+    return False
+
+
 def naive_outcome(
     state: State,
     moves: MoveFn,
