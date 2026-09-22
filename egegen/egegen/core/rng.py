@@ -63,3 +63,25 @@ def _tag_hash(tag: str) -> int:
     for byte in tag.encode():
         h = ((h ^ byte) * 1099511628211) & 0xFFFF_FFFF_FFFF_FFFF
     return h
+
+
+def bulk_ints(seed: int, count: int, lo: int, hi: int) -> list[int]:
+    """``count`` deterministic integers in ``[lo, hi]``, generated in bulk.
+
+    Drawing a million numbers one ``randint`` at a time costs seconds; pulling the
+    entropy as one block of bytes and reinterpreting it as 32-bit words is two orders
+    of magnitude faster and just as reproducible.
+    """
+    import array
+
+    if count < 0:
+        raise ValueError("count must be non-negative")
+    span = hi - lo + 1
+    if span <= 0:
+        raise ValueError("empty range")
+    words = array.array("I")
+    if words.itemsize != 4:  # pragma: no cover - every mainstream platform is 4
+        words = array.array("L")
+    raw = random.Random(seed).randbytes(words.itemsize * count)
+    words.frombytes(raw)
+    return [lo + (value % span) for value in words]

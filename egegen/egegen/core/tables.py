@@ -3,29 +3,51 @@
 The exam ships tasks 3, 9, 18 and 22 as ``.ods`` files, so the app offers the very
 same bytes for download while using the CSV twin inside the mini-grid and the
 browser Python runtime.
+
+The OpenDocument writer here is deliberately hand-rolled. A spreadsheet produced
+from a seed must be byte-identical every time — the instance's asset hash is part of
+what the anti-cheat re-check compares — and a general-purpose writer stamps in
+timestamps, emits namespaces in an order that depends on module-global state, and
+costs a few hundred milliseconds on a thousand rows.
 """
 
 from __future__ import annotations
 
 import io
-import re
-import xml.etree.ElementTree as ET
 import zipfile
 from collections.abc import Sequence
-
-from odf.opendocument import OpenDocumentSpreadsheet
-from odf.table import Table, TableCell, TableRow
-from odf.text import P
+from xml.sax.saxutils import escape
 
 Cell = str | int | float | None
 
+_FIXED_TIME = (2027, 1, 1, 0, 0, 0)
+_NS = (
+    'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
+    'xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" '
+    'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" '
+    'office:version="1.3"'
+)
+_MANIFEST = (
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    '<manifest:manifest '
+    'xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" '
+    'manifest:version="1.3">'
+    '<manifest:file-entry manifest:full-path="/" '
+    'manifest:media-type="application/vnd.oasis.opendocument.spreadsheet"/>'
+    '<manifest:file-entry manifest:full-path="content.xml" '
+    'manifest:media-type="text/xml"/>'
+    '<manifest:file-entry manifest:full-path="styles.xml" '
+    'manifest:media-type="text/xml"/>'
+    "</manifest:manifest>"
+)
+_STYLES = (
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    f"<office:document-styles {_NS}></office:document-styles>"
+)
+
 
 def to_csv(rows: Sequence[Sequence[Cell]], *, delimiter: str = ",") -> bytes:
-    """CSV without the ``csv`` module's platform-dependent line endings.
-
-    Byte-identical output for a given seed matters: the instance's asset hash is part
-    of what the anti-cheat re-check compares.
-    """
+    """CSV without the ``csv`` module's platform-dependent line endings."""
     out: list[str] = []
     for row in rows:
         cells: list[str] = []
@@ -43,66 +65,63 @@ def to_csv(rows: Sequence[Sequence[Cell]], *, delimiter: str = ",") -> bytes:
 
 def to_ods(rows: Sequence[Sequence[Cell]], *, sheet_name: str = "Лист1") -> bytes:
     """An OpenDocument spreadsheet holding one sheet of ``rows``."""
-    doc = OpenDocumentSpreadsheet()
-    table = Table(name=sheet_name)
-    for row in rows:
-        tr = TableRow()
-        for value in row:
-            if value is None:
-                tc = TableCell()
-            elif isinstance(value, bool):
-                tc = TableCell(valuetype="boolean", booleanvalue=value)
-            elif isinstance(value, int | float):
-                tc = TableCell(valuetype="float", value=value)
-                tc.addElement(P(text=str(value)))
-            else:
-                tc = TableCell(valuetype="string")
-                tc.addElement(P(text=str(value)))
-            tr.addElement(tc)
-        table.addElement(tr)
-    doc.spreadsheet.addElement(table)
-    buffer = io.BytesIO()
-    doc.write(buffer)
-    return _normalise_ods(buffer.getvalue())
+    return to_ods_multi({sheet_name: rows})
 
 
-def _canonical_xml(data: bytes) -> bytes:
-    """C14N form: namespaces and attributes sorted, unused declarations dropped."""
-    return ET.canonicalize(xml_data=data.decode("utf-8")).encode("utf-8")
+def to_ods_multi(sheets: dict[str, Sequence[Sequence[Cell]]]) -> bytes:
+    """An OpenDocument spreadsheet with several named sheets.
 
-
-_META_DATE = re.compile(
-    rb"<meta:creation-date>.*?</meta:creation-date>|<dc:date>.*?</dc:date>", re.DOTALL
-)
-_FIXED_TIME = (2027, 1, 1, 0, 0, 0)
-
-
-def _normalise_ods(payload: bytes) -> bytes:
-    """Rebuild the ODS archive with no timestamps anywhere.
-
-    A spreadsheet produced from a seed must be byte-identical every time: the
-    instance's asset hash is part of what the anti-cheat re-check compares, and the
-    property tests assert determinism. Three things get in the way, and all three are
-    handled here: odfpy stamps the creation date into meta.xml, the zip records the
-    current time on every entry, and odfpy emits namespace declarations in an order
-    that depends on module-global state accumulated by earlier documents.
+    Task 3 ships three linked tables, which is how the exam presents it.
     """
-    source = zipfile.ZipFile(io.BytesIO(payload))
+    body: list[str] = ['<?xml version="1.0" encoding="UTF-8"?>\n']
+    body.append(f"<office:document-content {_NS}><office:body><office:spreadsheet>")
+    for sheet_name, rows in sheets.items():
+        body.append(f'<table:table table:name="{escape(sheet_name)}">')
+        for row in rows:
+            body.append("<table:table-row>")
+            body.extend(_cell(value) for value in row)
+            body.append("</table:table-row>")
+        body.append("</table:table>")
+    body.append("</office:spreadsheet></office:body></office:document-content>")
+    content = "".join(body)
+
     out = io.BytesIO()
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as target:
-        for name in source.namelist():
-            data = source.read(name)
-            if name.endswith("meta.xml"):
-                data = _META_DATE.sub(b"", data)
-            if name.endswith(".xml"):
-                data = _canonical_xml(data)
-            info = zipfile.ZipInfo(name, date_time=_FIXED_TIME)
-            info.compress_type = (
-                zipfile.ZIP_STORED if name == "mimetype" else zipfile.ZIP_DEFLATED
-            )
-            info.external_attr = 0o600 << 16
-            target.writestr(info, data)
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
+        # The mimetype entry must come first and be stored uncompressed.
+        _write(archive, "mimetype", b"application/vnd.oasis.opendocument.spreadsheet",
+               compress=False)
+        _write(archive, "META-INF/manifest.xml", _MANIFEST.encode("utf-8"))
+        _write(archive, "styles.xml", _STYLES.encode("utf-8"))
+        _write(archive, "content.xml", content.encode("utf-8"))
     return out.getvalue()
+
+
+def _cell(value: Cell) -> str:
+    if value is None:
+        return "<table:table-cell/>"
+    if isinstance(value, bool):
+        flag = "true" if value else "false"
+        return (
+            f'<table:table-cell office:value-type="boolean" '
+            f'office:boolean-value="{flag}"><text:p>{flag}</text:p></table:table-cell>'
+        )
+    if isinstance(value, int | float):
+        return (
+            f'<table:table-cell office:value-type="float" office:value="{value}">'
+            f"<text:p>{value}</text:p></table:table-cell>"
+        )
+    text = escape(str(value))
+    return (
+        '<table:table-cell office:value-type="string">'
+        f"<text:p>{text}</text:p></table:table-cell>"
+    )
+
+
+def _write(archive: zipfile.ZipFile, name: str, data: bytes, *, compress: bool = True) -> None:
+    info = zipfile.ZipInfo(name, date_time=_FIXED_TIME)
+    info.compress_type = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
+    info.external_attr = 0o600 << 16
+    archive.writestr(info, data)
 
 
 def to_txt(lines: Sequence[str | int]) -> bytes:
@@ -114,11 +133,14 @@ def preview(rows: Sequence[Sequence[Cell]], limit: int = 8) -> str:
     if not rows:
         return ""
     head, *body = rows
-    widths = [str(c) if c is not None else "" for c in head]
-    out = ["| " + " | ".join(widths) + " |"]
+    out = ["| " + " | ".join("" if c is None else str(c) for c in head) + " |"]
     out.append("|" + "|".join("---" for _ in head) + "|")
     for row in body[:limit]:
         out.append("| " + " | ".join("" if c is None else str(c) for c in row) + " |")
     if len(body) > limit:
-        out.append(f"| … | ({len(body) - limit} строк скрыто) |" if len(head) > 1 else "| … |")
+        out.append(
+            "| … | " + " | ".join("" for _ in head[2:]) + f" | ({len(body) - limit} строк скрыто) |"
+            if len(head) > 2
+            else f"| … | ({len(body) - limit} строк скрыто) |"
+        )
     return "\n".join(out)

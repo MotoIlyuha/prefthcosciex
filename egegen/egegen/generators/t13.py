@@ -48,8 +48,12 @@ class Task13(Generator):
         if subtype == "13.5_non_monotone":
             commands = [*commands, "sub1"]
         a = rng.randint(cfg.min_a, cfg.min_a + 12)
-        b = rng.randint(a + 8 + difficulty * 4, min(cfg.max_b, a + 30 + difficulty * 18))
-        if b <= a:
+        # How fast the program count grows depends entirely on the command set, which
+        # comes from the config: two commands need a wide A..B gap to reach a few
+        # hundred programs, three commands blow past the cap almost immediately. So B
+        # is searched for rather than drawn at random.
+        b = self._pick_target(rng, a, commands, cfg, difficulty)
+        if b is None:
             return None
 
         meta: dict[str, Any] = {
@@ -90,9 +94,14 @@ class Task13(Generator):
             case "13.5_non_monotone":
                 meta["question"] = "bounded"
                 meta["lo"], meta["hi"] = 1, b + 10
-                meta["max_len"] = 8 + difficulty
+                # With a subtract command the count grows steeply with the length
+                # bound, so the bound is searched for instead of fixed by difficulty.
+                length = self._pick_length(meta, cfg, difficulty)
+                if length is None:
+                    return None
+                meta["max_len"] = length
                 fields["lo"], fields["hi"] = meta["lo"], meta["hi"]
-                fields["max_len"] = meta["max_len"]
+                fields["max_len"] = length
             case "13.6_trajectory":
                 c = self._waypoint(rng, a, b)
                 if c is None:
@@ -119,6 +128,48 @@ class Task13(Generator):
             template_id=template.id,
             meta=meta,
         )
+
+    def _pick_target(
+        self, rng: Rng, a: int, commands: list[str], cfg: Any, difficulty: int  # noqa: ANN401
+    ) -> int | None:
+        """Smallest-to-largest sweep for a B whose program count sits in the band."""
+        if not is_monotone(commands):
+            return min(cfg.max_b, a + 10 + difficulty * 4)
+        band_lo = max(cfg.answer_min * 4, 12)
+        band_hi = cfg.answer_max
+        usable = [
+            b
+            for b in range(a + 6, min(cfg.max_b, a + 120) + 1)
+            if band_lo <= count_programs(a, b, commands) <= band_hi
+        ]
+        if not usable:
+            return None
+        # Harder instances take a larger B, which means a bigger search tree.
+        span = max(1, len(usable) // 5)
+        window = usable[min((difficulty - 1) * span, len(usable) - 1) :][:span]
+        return rng.choice(window or usable)
+
+    def _pick_length(
+        self, meta: dict[str, Any], cfg: Any, difficulty: int  # noqa: ANN401
+    ) -> int | None:
+        """Shortest length bound whose program count is inside the configured band."""
+        usable: list[int] = []
+        for length in range(3, 20):
+            total = count_programs_bounded(
+                meta["a"],
+                meta["b"],
+                meta["commands"],
+                lo=meta["lo"],
+                hi=meta["hi"],
+                max_len=length,
+            )
+            if total > cfg.answer_max:
+                break
+            if total >= cfg.answer_min:
+                usable.append(length)
+        if not usable:
+            return None
+        return usable[min(difficulty - 1, len(usable) - 1)]
 
     def _waypoint(self, rng: Rng, a: int, b: int) -> int | None:
         if b - a < 6:

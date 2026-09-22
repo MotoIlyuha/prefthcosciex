@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 
+import egegen.generators  # noqa: F401  - importing registers the generators
 from egegen.core.fipi import FipiConfig, load_fipi_config, reload_fipi_config, set_fipi_config
 from egegen.core.registry import registry
 

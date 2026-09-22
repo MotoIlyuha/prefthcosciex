@@ -29,6 +29,9 @@ class Generator(ABC):
     uniqueness: Uniqueness = Uniqueness.FUNCTIONAL
     #: Wall-clock budget for one instance (doc 7.2(д): 200 ms; 27 runs in the worker).
     generation_budget_ms: int = 200
+    #: Seeds the property sweep uses. Generators that build a 10^6-number file are
+    #: swept less densely so the suite stays runnable; their budget is the guard.
+    sweep_seeds: int = 25
 
     # -- configuration ------------------------------------------------------
     @property

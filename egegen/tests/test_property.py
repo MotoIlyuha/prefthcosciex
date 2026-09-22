@@ -18,9 +18,10 @@ SEEDS = range(4000, 4025)
 def test_subtype_properties(generator: Generator, subtype: str) -> None:
     spec = generator.templates.subtypes[subtype]
     lo, hi = spec.difficulty_range
+    seeds = list(SEEDS)[: generator.sweep_seeds]
     failures: list[str] = []
     for difficulty in range(lo, hi + 1):
-        for seed in SEEDS:
+        for seed in seeds:
             report = check_instance(generator, seed, difficulty, subtype)
             if not report.ok:
                 failures.append(str(report))
@@ -33,7 +34,7 @@ def test_generation_time_budget(generator: Generator, subtype: str) -> None:
     lo, hi = spec.difficulty_range
     times = [
         generator.timed_generate(seed, (lo + hi) // 2, subtype)[1]
-        for seed in range(5000, 5020)
+        for seed in range(5000, 5000 + min(20, generator.sweep_seeds))
     ]
     times.sort()
     median = times[len(times) // 2]
@@ -47,7 +48,7 @@ def test_hidden_variant_differs(generator: Generator, subtype: str) -> None:
     """The anti-cheat sibling must be a genuinely different instance (doc 7.5.2)."""
     same_answer = 0
     total = 0
-    for seed in range(6000, 6015):
+    for seed in range(6000, 6000 + min(15, generator.sweep_seeds)):
         instance = generator.generate(seed, 3, subtype)
         hidden = generator.generate_hidden(instance)
         assert hidden.seed != instance.seed
