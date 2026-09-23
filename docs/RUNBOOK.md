@@ -69,7 +69,7 @@ BASE=https://<стенд> BOT_TOKEN=<токен> VUS=200 make load
 | Логи | `docker compose ... logs -f --tail=200 api worker bot runner` |
 | Перезапуск | `docker compose ... restart api worker bot` |
 | Миграции | выполняются автоматически при старте `api` |
-| Бэкапы | сайдкар `backup`: ежедневно 03:30 UTC, хранение 30 дней, том `backups` |
+| Бэкапы | сайдкар `backup`: ежедневно 03:30 UTC; том `backups` — 7 дней, копия в S3 (бакет `${S3_BUCKET}-backups`) — 30 дней. Список: `docker compose -f compose.yaml -f compose.stage.yaml exec backup rclone ls s3:bayt-backups`; вернуть дамп в том: `... exec backup rclone copy s3:bayt-backups/<файл> /backups/`, затем `infra/scripts/restore.sh` |
 | Проверка восстановления (раз в месяц) | `bash infra/scripts/restore-check.sh` |
 | Восстановление | `bash infra/scripts/restore.sh <файл.dump>` — **затирает текущие данные** |
 | Смена цен/переключателей ФИПИ | админка → «Конфиг» (цены — только с новым `season_id`) |

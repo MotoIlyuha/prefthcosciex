@@ -9,12 +9,8 @@ KEEP_DAYS="${BACKUP_KEEP_DAYS:-30}"
 LOCAL_DAYS="${BACKUP_LOCAL_DAYS:-7}"
 BUCKET="${S3_BUCKET:-bayt}-backups"
 mkdir -p /backups
-if [ -n "${S3_ENDPOINT:-}" ] && command -v rclone >/dev/null; then
-  # rclone remote "s3" configured from the environment, no config file.
-  export RCLONE_CONFIG_S3_TYPE=s3 RCLONE_CONFIG_S3_PROVIDER=SeaweedFS
-  export RCLONE_CONFIG_S3_ENDPOINT="$S3_ENDPOINT"
-  export RCLONE_CONFIG_S3_ACCESS_KEY_ID="$S3_ACCESS_KEY"
-  export RCLONE_CONFIG_S3_SECRET_ACCESS_KEY="$S3_SECRET_KEY"
+# The rclone remote "s3" comes from RCLONE_CONFIG_S3_* (compose.stage.yaml).
+if [ -n "${RCLONE_CONFIG_S3_ENDPOINT:-}" ] && command -v rclone >/dev/null; then
   rclone -q mkdir "s3:$BUCKET"
   remote=1
 else
