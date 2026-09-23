@@ -416,3 +416,17 @@ async def test_every_code_task_reference_passes_its_own_recheck(db: AsyncSession
             assert status == "ok", (task_no, seed, row.subtype_id)
             cheat = await verify_code(row, f"print({row.answer!r})", build_deferred=True)
             assert cheat != "ok", (task_no, seed, row.subtype_id)
+
+
+async def test_trial_view_and_public_config(client: httpx.AsyncClient) -> None:
+    headers = await login(client, 3020)
+    trial = (await client.post("/path/3/extern", headers=headers)).json()
+    view = (await client.get(f"/path/trials/{trial['trial_id']}", headers=headers)).json()
+    assert [i["id"] for i in view["instances"]] == [i["id"] for i in trial["instances"]]
+    assert view["finished"] is False
+    other = await login(client, 3021)
+    assert (await client.get(f"/path/trials/{trial['trial_id']}", headers=other)).status_code == 404
+    config = (await client.get("/config/public")).json()
+    assert config == {"bot_username": "bayt_test_bot", "bot_id": 123456,
+                      "fipi_banner": config["fipi_banner"]}
+    assert config["fipi_banner"]

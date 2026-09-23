@@ -198,6 +198,11 @@ async def boss(
     return await idempotent(user.id, key, lambda: floors.start_trial(session, user, floor, "boss"))
 
 
+@router.get("/path/trials/{trial_id}")
+async def trial(trial_id: int, user: LimitedUser, session: Session) -> dict[str, Any]:
+    return await floors.trial_view(session, user, trial_id)
+
+
 @router.get("/path/python")
 async def python_track(user: LimitedUser, session: Session) -> dict[str, Any]:
     """«Python‑минимум» progress (Appendix C)."""

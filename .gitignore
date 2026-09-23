@@ -21,7 +21,7 @@ client/.vite/
 playwright-report/
 test-results/
 
-# Vendored heavy assets (fetched by scripts/vendor-pyodide.sh)
+# Vendored heavy assets (client/scripts/vendor-pyodide.mjs)
 client/public/pyodide/*
 !client/public/pyodide/.gitkeep
 

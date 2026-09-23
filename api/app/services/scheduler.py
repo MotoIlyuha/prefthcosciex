@@ -71,20 +71,24 @@ async def morning_plans(session: AsyncSession, now: datetime | None = None) -> i
             log.exception("plan failed for user %s", user.id)
             continue
         built += 1
-        rows = list(await session.scalars(
-            select(Instance).where(Instance.id.in_([i["instance_id"] for i in plan.items]))
-        ))
+        rows = list(
+            await session.scalars(
+                select(Instance).where(Instance.id.in_([i["instance_id"] for i in plan.items]))
+            )
+        )
         for row in rows:
             if any(a.get("deferred") for a in row.assets):
                 await enqueue("build_big_file", row.id)
         mandatory = [i for i in plan.items if i["mandatory"]]
-        titles = ", ".join(
-            f"{i['task_no']}‑е" if i["task_no"] else "Python" for i in mandatory
-        )
+        titles = ", ".join(f"{i['task_no']}‑е" if i["task_no"] else "Python" for i in mandatory)
         minutes = max(1, round(sum(i["target_seconds"] for i in mandatory) / 60))
         await schedule(
-            session, user.id, "dailies_open", {"tasks": titles, "minutes": minutes},
-            dedupe=f"dailies_open:{user.id}:{day.isoformat()}", now=moment,
+            session,
+            user.id,
+            "dailies_open",
+            {"tasks": titles, "minutes": minutes},
+            dedupe=f"dailies_open:{user.id}:{day.isoformat()}",
+            now=moment,
         )
         await session.commit()
     return built
@@ -108,8 +112,14 @@ async def evening_reminders(session: AsyncSession, now: datetime | None = None) 
         # With a streak worth protecting, the last-chance message replaces the 20:00
         # one: two reminders about the same threshold would spend the daily budget.
         kind = "streak_risk" if current >= 3 else "threshold_missed"
-        row = await schedule(session, user.id, kind, {"left": left, "streak": current},
-                             dedupe=f"{kind}:{user.id}:{day.isoformat()}", now=moment)
+        row = await schedule(
+            session,
+            user.id,
+            kind,
+            {"left": left, "streak": current},
+            dedupe=f"{kind}:{user.id}:{day.isoformat()}",
+            now=moment,
+        )
         planned += row is not None
     await session.commit()
     return planned
@@ -125,11 +135,15 @@ async def deliver_due(session: AsyncSession, now: datetime | None = None) -> dic
     """Send every due notification; skip the ones the student made pointless."""
     moment = now or datetime.now(UTC)
     counts = {"sent": 0, "skipped": 0, "failed": 0}
-    rows = list(await session.scalars(
-        select(Notification)
-        .where(Notification.status == "scheduled", Notification.scheduled_at <= moment)
-        .order_by(Notification.scheduled_at).limit(500).with_for_update(skip_locked=True)
-    ))
+    rows = list(
+        await session.scalars(
+            select(Notification)
+            .where(Notification.status == "scheduled", Notification.scheduled_at <= moment)
+            .order_by(Notification.scheduled_at)
+            .limit(500)
+            .with_for_update(skip_locked=True)
+        )
+    )
     for row in rows:
         user = await session.get(User, row.user_id)
         if user is None:
@@ -184,7 +198,11 @@ async def curator_updates(session: AsyncSession, now: datetime | None = None) ->
                 "link": str(student.id),
             }
             row = await schedule(
-                session, curator.id, "cur_digest", payload, now=moment,
+                session,
+                curator.id,
+                "cur_digest",
+                payload,
+                now=moment,
                 dedupe=f"cur_digest:{link_row.id}:{local.date().isoformat()}",
             )
             planned += row is not None
@@ -192,7 +210,10 @@ async def curator_updates(session: AsyncSession, now: datetime | None = None) ->
         allowed = "coins_by_day" in FIELDS[link_row.access]  # «Прогресс» or above
         if idle >= timedelta(days=2) and allowed:
             row = await schedule(
-                session, curator.id, "cur_idle", {"name": name, "link": str(student.id)},
+                session,
+                curator.id,
+                "cur_idle",
+                {"name": name, "link": str(student.id)},
                 now=moment,
                 dedupe=f"cur_idle:{link_row.id}:{student.last_seen_at.date().isoformat()}",
             )
@@ -210,17 +231,25 @@ async def weekly(session: AsyncSession, now: datetime | None = None) -> int:
         if local.weekday() != 6 or local.hour not in WEEKLY_HOURS:
             continue
         start = week_start(local.date())
-        stats = list(await session.scalars(
-            select(DailyStats).where(DailyStats.user_id == user.id, DailyStats.date >= start)
-        ))
+        stats = list(
+            await session.scalars(
+                select(DailyStats).where(DailyStats.user_id == user.id, DailyStats.date >= start)
+            )
+        )
         streak = await session.get(Streak, user.id)
         payload: dict[str, Any] = {
             "coins": sum(s.coins_earned for s in stats),
             "tasks": sum(s.tasks_done for s in stats),
             "streak": streak.current if streak else 0,
         }
-        row = await schedule(session, user.id, "weekly_summary", payload, now=moment,
-                             dedupe=f"weekly_summary:{user.id}:{start.isoformat()}")
+        row = await schedule(
+            session,
+            user.id,
+            "weekly_summary",
+            payload,
+            now=moment,
+            dedupe=f"weekly_summary:{user.id}:{start.isoformat()}",
+        )
         planned += row is not None
         await snapshot_now(session, user)
     curators = await session.scalars(
@@ -233,8 +262,14 @@ async def weekly(session: AsyncSession, now: datetime | None = None) -> int:
         local = local_now(curator.tz, moment)
         if local.weekday() != 6 or local.hour not in WEEKLY_HOURS:
             continue
-        row = await schedule(session, curator_id, "cur_weekly", {}, now=moment,
-                             dedupe=f"cur_weekly:{curator_id}:{local.date().isoformat()}")
+        row = await schedule(
+            session,
+            curator_id,
+            "cur_weekly",
+            {},
+            now=moment,
+            dedupe=f"cur_weekly:{curator_id}:{local.date().isoformat()}",
+        )
         planned += row is not None
     await session.commit()
     return planned
@@ -245,8 +280,11 @@ async def nightly(session: AsyncSession, now: datetime | None = None) -> dict[st
     moment = now or datetime.now(UTC)
     expired = await session.execute(
         update(Instance)
-        .where(Instance.state.in_(("planned", "issued", "attempted")),
-               Instance.expires_at < moment, Instance.context != "exam")
+        .where(
+            Instance.state.in_(("planned", "issued", "attempted")),
+            Instance.expires_at < moment,
+            Instance.context != "exam",
+        )
         .values(state="expired")
     )
     await session.commit()
@@ -256,8 +294,11 @@ async def nightly(session: AsyncSession, now: datetime | None = None) -> dict[st
         snapshots += 1
     await session.commit()
     purged = await purge_due(session, moment)
-    return {"expired": int(getattr(expired, "rowcount", 0) or 0), "snapshots": snapshots,
-            "purged": purged}
+    return {
+        "expired": int(getattr(expired, "rowcount", 0) or 0),
+        "snapshots": snapshots,
+        "purged": purged,
+    }
 
 
 async def build_big_file(session: AsyncSession, instance_id: int) -> bool:
@@ -269,4 +310,3 @@ async def build_big_file(session: AsyncSession, instance_id: int) -> bool:
         if asset.get("deferred"):
             await read_asset(row, asset["name"])
     return True
-

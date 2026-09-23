@@ -215,6 +215,25 @@ async def start_trial(session: AsyncSession, user: User, number: int, kind: str)
     }
 
 
+async def trial_view(session: AsyncSession, user: User, trial_id: int) -> dict[str, Any]:
+    trial = await session.get(FloorTrial, trial_id)
+    if trial is None or trial.user_id != user.id:
+        raise not_found("испытание")
+    rows = {
+        r.id: r
+        for r in await session.scalars(select(Instance).where(Instance.id.in_(trial.instance_ids)))
+    }
+    return {
+        "trial_id": trial.id,
+        "kind": trial.kind,
+        "floor": trial.floor_id,
+        "correct": trial.correct,
+        "finished": trial.finished,
+        "passed": trial.passed,
+        "instances": [inst_service.public(rows[i]) for i in trial.instance_ids if i in rows],
+    }
+
+
 async def _close_trial(
     session: AsyncSession, user: User, row: Instance, correct: bool
 ) -> dict[str, Any]:
