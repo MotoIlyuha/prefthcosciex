@@ -19,8 +19,6 @@ JOBS = frozenset(
         "recheck_code",  # 7.5.2: re-run a student's program on the hidden variant
         "build_big_file",  # 12.4: file B of task 27, prepared ahead of time
         "deliver_notification",
-        "export_user",  # 12.7: data export within 24 hours
-        "notify_curators",
     }
 )
 

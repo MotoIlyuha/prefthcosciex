@@ -25,6 +25,7 @@ from app.db.models import (
     Nudge,
     Streak,
     User,
+    UserSettings,
     Wallet,
 )
 from app.logic import curator as rules
@@ -529,6 +530,10 @@ async def update_link(
         link.league_enabled = league_enabled
     if digest_time is not None:
         link.daily_digest_time = digest_time
+        # Choosing a digest time is the opt-in to the digest (9.4: optional).
+        prefs = await session.get(UserSettings, curator.id)
+        if prefs is not None:
+            prefs.notifications = {**(prefs.notifications or {}), "cur_digest": True}
     await session.commit()
     return {"league_enabled": link.league_enabled, "daily_digest_time": link.daily_digest_time}
 
