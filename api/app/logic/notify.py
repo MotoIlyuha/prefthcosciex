@@ -19,8 +19,21 @@ KINDS: dict[str, dict[str, object]] = {
     "curator_nudge": {"at": None, "screen": "today"},
     "curator_focus": {"at": None, "screen": "confidence"},
     "demo_approved": {"at": None, "screen": "profile"},
+    # Curator side (9.4). Each can be switched off separately.
+    "cur_digest": {"at": time(20, 0), "screen": "students"},
+    "cur_milestone": {"at": None, "screen": "students"},
+    "cur_floor": {"at": None, "screen": "students"},
+    "cur_exam": {"at": None, "screen": "students"},
+    "cur_idle": {"at": time(19, 0), "screen": "students"},
+    "cur_weekly": {"at": time(19, 0), "screen": "students"},
+    "cur_revoked": {"at": None, "screen": "students"},
+    "cur_invite": {"at": None, "screen": "students"},
 }
+CURATOR_KINDS = frozenset(k for k in KINDS if k.startswith("cur_"))
 MAX_PER_DAY = 2
+"""Section 10 limits notifications *to the student*. A curator's notifications about
+students are a separate channel with its own, larger budget (decision D‑023)."""
+CURATOR_MAX_PER_DAY = 6
 QUIET_START = time(23, 0)
 QUIET_END = time(8, 0)
 STREAK_RISK_MIN = 3
@@ -58,6 +71,7 @@ def decide(
     streak: int = 0,
     last_weekly_ping: datetime | None = None,
     dailies_time: time | None = None,
+    scheduled_time: time | None = None,
 ) -> Decision:
     """Whether and when to send one notification. Pure: the caller records the result."""
     if kind not in KINDS:
@@ -68,7 +82,7 @@ def decide(
         return Decision(False, reason="streak shorter than 3 days")
 
     local = now.astimezone(zone(tz))
-    if last_seen is not None:
+    if last_seen is not None and kind not in CURATOR_KINDS:
         idle = now - last_seen
         if idle >= timedelta(days=30) and kind != "demo_approved":
             return Decision(False, reason="inactive for 30 days")
@@ -77,10 +91,11 @@ def decide(
         )
         if idle >= timedelta(days=14) and recently_pinged:
             return Decision(False, reason="inactive: one a week at most")
-    if sent_today >= MAX_PER_DAY:
+    limit = CURATOR_MAX_PER_DAY if kind in CURATOR_KINDS else MAX_PER_DAY
+    if sent_today >= limit:
         return Decision(False, reason="daily limit reached")
 
-    scheduled = KINDS[kind]["at"]
+    scheduled = scheduled_time or KINDS[kind]["at"]
     if kind == "dailies_open":
         scheduled = dailies_time or DEFAULT_DAILIES_TIME
     if isinstance(scheduled, time):

@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     #: The design doc (12.3) caps initData age at 10 minutes.
     telegram_initdata_max_age: int = 600
 
+    #: Shared secret between the bot and the API's /internal endpoints.
+    internal_token: str = "dev-internal-token"
+    #: POST /auth/dev for local e2e runs. Ignored on stage and prod whatever its value.
+    dev_login: bool = False
+
     runner_url: str = "http://runner:8081"
     runner_token: str = "dev-runner-token"
 

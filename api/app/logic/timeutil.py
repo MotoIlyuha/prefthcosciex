@@ -17,6 +17,14 @@ def zone(name: str | None) -> ZoneInfo:
         return ZoneInfo(DEFAULT_TZ)
 
 
+def valid_tz(name: str) -> bool:
+    try:
+        ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return False
+    return True
+
+
 def local_now(tz: str | None, now: datetime | None = None) -> datetime:
     moment = now or datetime.now(UTC)
     return moment.astimezone(zone(tz))

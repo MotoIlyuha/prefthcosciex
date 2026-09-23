@@ -74,6 +74,7 @@ class Prices(_Strict):
     restore_window_hours: int
     cosmetics_min: int
     cosmetics_max: int
+    free_full_exams_in_may: int
 
     def floor(self, no: int) -> int:
         """Price of floor ``n``: 150 + 25·n (design doc 5.3)."""
@@ -101,6 +102,13 @@ class Health(_Strict):
     reveal_after_error_max: float
 
 
+class Cosmetic(_Strict):
+    id: str
+    kind: Literal["theme", "frame", "sticker"]
+    title: str
+    price: int
+
+
 class Safety(_Strict):
     ticket_compensation: int
 
@@ -112,6 +120,7 @@ class Economy(_Strict):
     modifiers: Modifiers
     day: DayRules
     prices: Prices
+    cosmetics: list[Cosmetic]
     streak: StreakRules
     safety: Safety
     ranks: list[Rank]
@@ -127,6 +136,12 @@ class Economy(_Strict):
                 raise ValueError(f"base_reward.{level} needs three values")
         if [r.xp for r in self.ranks] != sorted(r.xp for r in self.ranks):
             raise ValueError("ranks must be ordered by XP")
+        low, high = self.prices.cosmetics_min, self.prices.cosmetics_max
+        for item in self.cosmetics:
+            if not low <= item.price <= high:
+                raise ValueError(f"cosmetic {item.id} costs outside {low}..{high}")
+        if len({c.id for c in self.cosmetics}) != len(self.cosmetics):
+            raise ValueError("cosmetic ids must be unique")
         return self
 
     def level_of(self, task_no: int) -> Level:
@@ -206,6 +221,7 @@ class Curriculum(_Strict):
     bands: dict[Band, BandInfo]
     band_weight: BandWeight
     learning_cost: dict[int, float]
+    code_recheck_tasks: list[int]
 
     @model_validator(mode="after")
     def _complete(self) -> Curriculum:

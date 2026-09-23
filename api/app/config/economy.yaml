@@ -59,6 +59,19 @@ prices:
   restore_window_hours: 48
   cosmetics_min: 100
   cosmetics_max: 500
+  free_full_exams_in_may: 4    # раздел 8: «финальный спринт» — 4 бесплатных полных в мае
+
+# 5.3 — косметика: сток для «богатых», ни на что не влияет (цены в пределах 100–500)
+cosmetics:
+  - { id: theme_night,   kind: theme,   title: "Тема «Ночной терминал»",  price: 150 }
+  - { id: theme_paper,   kind: theme,   title: "Тема «Тетрадь в клетку»", price: 150 }
+  - { id: theme_neon,    kind: theme,   title: "Тема «Неон»",             price: 300 }
+  - { id: frame_bronze,  kind: frame,   title: "Рамка «Бронза»",          price: 100 }
+  - { id: frame_silver,  kind: frame,   title: "Рамка «Серебро»",         price: 250 }
+  - { id: frame_gold,    kind: frame,   title: "Рамка «Золото»",          price: 500 }
+  - { id: sticker_turtle, kind: sticker, title: "Стикер «Черепаха»",      price: 100 }
+  - { id: sticker_graph,  kind: sticker, title: "Стикер «Граф»",          price: 100 }
+  - { id: sticker_byte,   kind: sticker, title: "Стикер «Байт»",          price: 200 }
 
 # 4.3 — серия
 streak:

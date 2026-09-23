@@ -53,9 +53,14 @@ def difficulty_bucket(difficulty: int) -> int:
     return 2
 
 
+PYTHON_TRACK = 0
+"""Pseudo task number of the Python-minimum exercises; paid like a Б-level task."""
+
+
 def base_reward(task_no: int, difficulty: int) -> int:
     cfg = economy()
-    return cfg.base_reward[cfg.level_of(task_no)][difficulty_bucket(difficulty)]
+    level = "B" if task_no == PYTHON_TRACK else cfg.level_of(task_no)
+    return cfg.base_reward[level][difficulty_bucket(difficulty)]
 
 
 def attempt_multiplier(attempt_no: int) -> float:
