@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  egegen:
+    name: egegen (ruff, mypy --strict, property + golden tests)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: egegen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --all-extras --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy --strict egegen
+      - run: uv run egegen selfcheck
+      - run: uv run pytest -q --timeout=2400
