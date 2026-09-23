@@ -177,7 +177,8 @@ class Task05(Generator):
             return None
         good = rng.sample(window, 3)
         lo, hi = min(good), max(good)
-        misses = [x for x in range(lo, hi + 1) if x not in set(reachable)]
+        reachable_set = set(reachable)
+        misses = [x for x in range(lo, hi + 1) if x not in reachable_set]
         if not misses:
             return None
         options = sorted([*good, rng.choice(misses)])

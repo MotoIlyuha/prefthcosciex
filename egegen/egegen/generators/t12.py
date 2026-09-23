@@ -8,6 +8,7 @@ with explicit ``find`` and slicing, so a shortcut in the fast one cannot pass.
 
 from __future__ import annotations
 
+import functools
 from typing import Any
 
 from egegen.core.errors import GenerationFailedError
@@ -214,15 +215,23 @@ class Task12(Generator):
 
     def _reverse_candidates(self, meta: dict[str, Any]) -> list[int]:
         """Which starting block sizes give a result of the asked length."""
-        head, tail = meta["start_head"], meta["start_tail"]
-        rules = [tuple(r) for r in meta["rules"]]
-        target: int = meta["target_metric"]
+        rules = tuple((str(a), str(b)) for a, b in meta["rules"])
+        return list(
+            self._reverse_scan(meta["start_head"], meta["start_tail"], rules, meta["target_metric"])
+        )
+
+    @functools.lru_cache(maxsize=256)  # noqa: B019 - generators are module-level singletons
+    def _reverse_scan(
+        self, head: str, tail: str, rules: tuple[tuple[str, str], ...], target: int
+    ) -> tuple[int, ...]:
+        # Generation checks the candidates and then computes the answer from the same
+        # scan: remembering it halves the time of the slowest subtype of task 12.
         out: list[int] = []
         for n in range(3, 61):
-            result = self._run_replace(head * n + tail * n, rules)
+            result = self._run_replace(head * n + tail * n, list(rules))
             if result is not None and len(result) == target:
                 out.append(n)
-        return out
+        return tuple(out)
 
     # -- solving ------------------------------------------------------------
     def solve_fast(self, meta: dict[str, Any]) -> str:

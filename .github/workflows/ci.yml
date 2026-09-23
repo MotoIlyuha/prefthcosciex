@@ -169,14 +169,14 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: client/package-lock.json
-      - name: API (migrate, seed, serve)
+      - name: "API (migrate, seed, serve)"
         working-directory: api
         run: |
           uv sync --frozen
           uv run alembic upgrade head
           uv run python -m app.seed
           nohup uv run uvicorn app.main:app --port 8000 > /tmp/api.log 2>&1 &
-      - name: Runner (fallback mode: e2e does not test the jail)
+      - name: "Runner (fallback mode: e2e does not test the jail)"
         working-directory: runner
         run: |
           uv sync --frozen
