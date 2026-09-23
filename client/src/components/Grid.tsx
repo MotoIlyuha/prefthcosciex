@@ -2,17 +2,34 @@
 // a formula bar with СУММ/МАКС/СЧЁТЕСЛИ over the task's CSV.
 import { useMemo, useState } from "react";
 
-import { FormulaError, columnName, evaluate, filterRows, sortRows, type Table } from "../lib/sheet";
+import { FormulaError, columnName, evaluate, filterRows, sortRows, toNumber, type Table } from "../lib/sheet";
+
+/** Walls of task 18: `right` — a wall right of cell [row, col], `down` — below it. */
+export interface Walls {
+  right: [number, number][];
+  down: [number, number][];
+}
 
 const PAGE = 200;
 
-export function Grid({ table }: { table: Table }) {
+export function Grid({ table, walls }: { table: Table; walls?: Walls | null }) {
   const [sort, setSort] = useState<{ column: number; desc: boolean } | null>(null);
   const [query, setQuery] = useState("");
   const [formula, setFormula] = useState("");
   const [page, setPage] = useState(0);
-  const header = table[0] ?? [];
-  const body = table.slice(1);
+  // A table of numbers only (task 18's field) has no header row: data start at A1.
+  const hasHeader = !(table[0] ?? []).every((cell) => toNumber(cell) !== null);
+  const width = Math.max(0, ...table.map((row) => row.length));
+  const header = hasHeader ? (table[0] ?? []) : Array.from({ length: width }, () => "");
+  const body = useMemo(() => (hasHeader ? table.slice(1) : table), [table, hasHeader]);
+  const firstRow = hasHeader ? 2 : 1;
+  const wallSet = useMemo(() => {
+    const right = new Set((walls?.right ?? []).map(([r, c]) => `${r}:${c}`));
+    const down = new Set((walls?.down ?? []).map(([r, c]) => `${r}:${c}`));
+    return { right, down };
+  }, [walls]);
+  // Walls belong to positions: they are drawn only while rows keep their order.
+  const showWalls = Boolean(walls) && !sort && !query;
   const view = useMemo(() => {
     const filtered = filterRows(body, query);
     return sort ? sortRows(filtered, sort.column, sort.desc) : filtered;
@@ -39,7 +56,7 @@ export function Grid({ table }: { table: Table }) {
         />
         {result ? <div className={result.ok ? "formula-ok" : "formula-err"}>{result.text}</div> : null}
         <small className="muted">
-          Строка 1 — заголовки, данные с A2. Строк: {view.length}
+          {hasHeader ? "Строка 1 — заголовки, данные с A2." : "Данные с A1."} Строк: {view.length}
           {query ? ` из ${body.length}` : ""}
         </small>
       </div>
@@ -59,10 +76,14 @@ export function Grid({ table }: { table: Table }) {
           <tbody>
             {shown.map((row, r) => (
               <tr key={r}>
-                <td className="rownum">{page * PAGE + r + 2}</td>
-                {header.map((_, c) => (
-                  <td key={c}>{row[c] ?? ""}</td>
-                ))}
+                <td className="rownum">{page * PAGE + r + firstRow}</td>
+                {header.map((_, c) => {
+                  const at = `${page * PAGE + r}:${c}`;
+                  const cls = showWalls
+                    ? `${wallSet.right.has(at) ? "wall-right " : ""}${wallSet.down.has(at) ? "wall-down" : ""}`.trim()
+                    : "";
+                  return <td key={c} className={cls || undefined}>{row[c] ?? ""}</td>;
+                })}
               </tr>
             ))}
           </tbody>

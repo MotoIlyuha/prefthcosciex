@@ -2,12 +2,13 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "../lib/api";
+import { explainLine } from "../lib/explain";
 import { parseBlocks } from "../lib/markdown";
 import { onPythonStatus, pythonStatus, runPython, type PyStatus } from "../lib/python";
 import { parseCsv, type Table } from "../lib/sheet";
 import type { InstanceView } from "../lib/types";
 import { downloadAsset } from "./Assets";
-import { Grid } from "./Grid";
+import { Grid, type Walls } from "./Grid";
 import { Button, Spinner, useToast } from "./ui";
 
 const Editor = lazy(() => import("./Editor"));
@@ -62,6 +63,9 @@ export function CodePanel({
   const [status, setStatus] = useState<PyStatus>(pythonStatus());
   const [notes, setNotes] = useState(instance.draft.notes ?? "");
   const [table, setTable] = useState<{ name: string; data: Table } | null>(null);
+  const [walls, setWalls] = useState<Walls | null>(null);
+  const [line, setLine] = useState("");
+  const [explained, setExplained] = useState<string[] | null>(null);
   const toast = useToast((s) => s.show);
   const saveDraft = useDraftSaver(instance.id);
   useEffect(() => onPythonStatus(setStatus), []);
@@ -106,6 +110,11 @@ export function CodePanel({
     try {
       const blob = await downloadAsset(instance.id, name);
       setTable({ name, data: parseCsv(await blob.text()) });
+      // Task 18: the robot's walls are drawn as bold borders on the grid.
+      if (instance.assets.some((a) => a.name === "walls.json") && !walls) {
+        const raw = await (await downloadAsset(instance.id, "walls.json")).text();
+        setWalls(JSON.parse(raw) as Walls);
+      }
     } catch {
       toast("Таблица не загрузилась", "bad");
     }
@@ -129,13 +138,20 @@ export function CodePanel({
       {tab === "python" ? (
         <div className="tool-body">
           <Suspense fallback={<Spinner label="Открываю редактор…" />}>
-            <Editor value={code} onChange={(v) => { onCode(v); saveDraft("code", v); }} />
+            <Editor value={code} onChange={(v) => { onCode(v); saveDraft("code", v); }} onLine={(l) => { setLine(l); setExplained(null); }} />
           </Suspense>
           <div className="row gap">
             <Button onClick={() => void run()} busy={running} testId="run-code">▶ Запустить</Button>
-            <Button kind="ghost" small onClick={() => void insertTemplate()}>Шаблон из карточки</Button>
+            <Button kind="ghost" small onClick={() => void insertTemplate()}>Шаблон</Button>
+            <Button kind="ghost" small onClick={() => setExplained(explainLine(line))} testId="explain-line">Объяснить строку</Button>
             {!serverRun && status === "loading" ? <span className="muted">Загружаю Python (~10 МБ, один раз)…</span> : null}
           </div>
+          {explained ? (
+            <div className="note small" data-testid="explanation">
+              <code>{line.trim() || "(пустая строка)"}</code>
+              <ul>{explained.map((e, i) => <li key={i}>{e}</li>)}</ul>
+            </div>
+          ) : null}
           {files.length ? (
             <small className="muted block">
               Файлы доступны программе по имени: {files.map((f) => f.name).join(", ")}. Запуск — не дольше 10 с.
@@ -163,7 +179,7 @@ export function CodePanel({
               ))}
             </div>
           ) : null}
-          {table ? <Grid table={table.data} /> : <Spinner />}
+          {table ? <Grid table={table.data} walls={walls} /> : <Spinner />}
         </div>
       ) : null}
       {tab === "draft" ? (

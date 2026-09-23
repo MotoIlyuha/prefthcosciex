@@ -21,7 +21,9 @@ describe("format", () => {
     expect(answerWarning("int", " 1 024 ")).toBeNull();
     expect(answerWarning("two_ints", "12")).toBe("Нужно два числа");
     expect(answerWarning("two_ints", "12 30")).toBeNull();
-    expect(answerWarning("letters", "ab1")).not.toBeNull();
+    expect(answerWarning("letters", "ab1", { alphabet: "АБВ" })).not.toBeNull();
+    expect(answerWarning("letters", "010", { alphabet: "01" })).toBeNull();
+    expect(answerWarning("letters", "010")).toBeNull();
     expect(answerWarning("letters", "")).toBe("Введите ответ");
   });
 });

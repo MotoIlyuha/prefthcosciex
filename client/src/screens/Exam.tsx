@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { FileChips, Figures } from "../components/Assets";
+import { FileChips, Figures, assetImages } from "../components/Assets";
 import { LineChart } from "../components/charts";
 import { CodePanel } from "../components/CodePanel";
 import { Button, Card, Chip, ErrorView, Section, Sheet, Spinner, Toggle, useToast } from "../components/ui";
@@ -216,8 +216,8 @@ export function ExamRun() {
       ) : (
         <>
           <h2>Задание {item.task_no}</h2>
-          <Markdown source={item.instance.statement_md} className="md statement" />
-          <Figures assets={item.instance.assets} />
+          <Markdown source={item.instance.statement_md} className="md statement" resolveImage={assetImages(item.instance.assets)} />
+          <Figures assets={item.instance.assets} statement={item.instance.statement_md} />
           <FileChips instanceId={item.instance.id} assets={item.instance.assets} />
           <CodePanel key={item.instance.id} instance={item.instance} code={code[item.position] ?? ""}
             onCode={(v) => setCode((c) => ({ ...c, [item.position]: v }))} serverRun={Boolean(me.data?.settings.run_code_on_server)} />

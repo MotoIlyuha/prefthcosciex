@@ -35,3 +35,16 @@ describe("Markdown", () => {
     expect(container.querySelector("pre code")?.textContent).toContain("range(3)");
   });
 });
+
+describe("images", () => {
+  it("resolves asset references and refuses remote images", () => {
+    const resolve = (name: string) => (name === "g.svg" ? "data:image/svg+xml,x" : null);
+    const { container } = render(
+      <Markdown source={"![Граф](asset:g.svg)\n\n![внешняя](https://evil.example/x.png)"} resolveImage={resolve} />,
+    );
+    const images = container.querySelectorAll("img");
+    expect(images).toHaveLength(1);
+    expect(images[0]?.getAttribute("alt")).toBe("Граф");
+    expect(container.textContent).toContain("внешняя");
+  });
+});

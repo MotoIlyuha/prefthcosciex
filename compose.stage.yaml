@@ -13,15 +13,16 @@ services:
       BAYT_ENV: stage
 
   backup:
-    image: postgres:16-alpine
+    build:
+      context: ./infra
+      dockerfile: backup/Dockerfile
     restart: unless-stopped
     env_file: [.env]
     depends_on:
       postgres: {condition: service_healthy}
+      minio: {condition: service_started}
     volumes:
-      - ./infra/scripts:/scripts:ro
       - backups:/backups
-    entrypoint: ["/bin/sh", "/scripts/backup-loop.sh"]
 
 volumes:
   backups:

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import httpx
+import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -394,3 +395,44 @@ async def test_internal_start_accepts_a_curator_invite(client: httpx.AsyncClient
     assert mine[0]["name"] == "Папа" and mine[0]["status"] == "pending"
     me = (await client.get("/me", headers=student)).json()
     assert me["curator_requests"] == 1
+
+
+async def test_admin_runner_and_notification_smoke(
+    client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import json as jsonlib
+
+    from app.services import runner_client, telegram
+    from tests.conftest import _run_python
+
+    admin = await login(client, 4120, "Админ")
+
+    async def fake_run(code: str, files: dict[str, bytes], *, timeout_s: float = 12.0):  # type: ignore[no-untyped-def]
+        result = _run_python(code, files)
+        # The test machine has no network sandbox: emulate the jail's closed network.
+        return runner_client.RunResult(
+            result.ok,
+            result.stdout.replace("network: OPEN", "network: blocked"),
+            result.stderr,
+            result.exit_code,
+            result.timed_out,
+            result.duration_ms,
+        )
+
+    monkeypatch.setattr(runner_client, "run", fake_run)
+    smoke = (await client.post("/admin/runner/smoke", headers=admin)).json()
+    assert smoke["ok"] is True and smoke["stdout"].startswith("45")
+
+    sent: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(jsonlib.loads(request.content))
+        return httpx.Response(200, json={"ok": True})
+
+    telegram.set_transport(httpx.MockTransport(handler))
+    try:
+        resp = await client.post("/admin/notify/test", headers=admin)
+    finally:
+        telegram.set_transport(None)
+    assert resp.json() == {"sent": True}
+    assert sent[0]["chat_id"] == 4120

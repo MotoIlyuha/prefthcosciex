@@ -102,6 +102,30 @@ def check_string(raw: str, expected: str, options: dict[str, Any] | None = None)
     return CheckResult(text == exp, text)
 
 
+def check_custom(raw: str, expected: str, options: dict[str, Any] | None = None) -> CheckResult:
+    """Answers with several valid spellings (build prompt, stage 2: the ``custom`` checker).
+
+    ``options["accepted"]`` lists extra accepted forms besides ``expected``;
+    ``options["normalize"]`` is ``digits`` (keep digits and signs only), ``letters``
+    (upper-case, separators dropped) or ``text`` (collapse spaces, case-insensitive).
+    """
+    opts = options or {}
+    mode = str(opts.get("normalize", "text"))
+
+    def norm(value: str) -> str:
+        if mode == "digits":
+            return re.sub(r"[^\d+-]", "", value)
+        if mode == "letters":
+            return _SEPARATORS.sub("", value.strip()).upper()
+        return " ".join(value.split()).lower()
+
+    text = norm(raw)
+    if not text:
+        return CheckResult(False, text, "Введите ответ.")
+    accepted = {norm(expected), *(norm(str(a)) for a in opts.get("accepted", []))}
+    return CheckResult(text in accepted, text)
+
+
 Checker = Callable[[str, str, "dict[str, Any] | None"], CheckResult]
 
 CHECKERS: dict[AnswerKind, Checker] = {
@@ -111,6 +135,7 @@ CHECKERS: dict[AnswerKind, Checker] = {
     "two_ints": check_two_ints,
     "pairs_list": check_pairs_list,
     "string": check_string,
+    "custom": check_custom,
 }
 
 

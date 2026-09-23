@@ -121,3 +121,12 @@ def test_refuses_to_run_unjailed_without_opt_in(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(sandbox, "nsjail_binary", lambda: None)
     with pytest.raises(RuntimeError):
         sandbox.run("print(1)", {}, allow_unsafe=False)
+
+
+def test_blocked_attempts_are_logged(mode: str, caplog: pytest.LogCaptureFixture) -> None:
+    code = "import socket\nsocket.create_connection(('1.1.1.1', 53), timeout=2)\n"
+    with caplog.at_level("WARNING", logger="bayt.runner"):
+        result = _run(code)
+    assert not result.ok
+    assert any("sandbox blocked" in r.getMessage() for r in caplog.records)
+    assert "socket" not in " ".join(r.getMessage() for r in caplog.records)

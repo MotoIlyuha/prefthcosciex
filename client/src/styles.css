@@ -234,3 +234,8 @@ textarea.input { min-height: 90px; resize: vertical; }
 .error-view p { color: var(--danger); }
 .theory .card { overflow-x: auto; }
 .legal { background: var(--section); border-radius: var(--radius); padding: 14px; }
+.grid td.wall-right { border-right: 3px solid var(--text); }
+.grid td.wall-down { border-bottom: 3px solid var(--text); }
+.content { padding-top: calc(12px + var(--safe-top, 0px)); }
+.tabbar { padding-bottom: calc(6px + env(safe-area-inset-bottom) + var(--safe-bottom, 0px)); }
+html, body { overflow-x: hidden; }

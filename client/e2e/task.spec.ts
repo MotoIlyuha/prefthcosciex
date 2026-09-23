@@ -28,10 +28,8 @@ test("Python runs in the browser with the task's files", async ({ page }) => {
   await page.getByRole("tab", { name: /Python/ }).click();
   const editor = page.locator(".cm-content");
   await expect(editor).toBeVisible();
-  await editor.click();
-  await page.keyboard.type("import os");
-  await page.keyboard.press("Enter");
-  await page.keyboard.type("print(sum(range(10)), sorted(os.listdir('.')))");
+  // On touch devices CodeMirror takes text through input events, as a phone keyboard sends it.
+  await editor.fill("import os\nprint(sum(range(10)), sorted(os.listdir('.')))");
   await page.getByTestId("run-code").click();
   await expect(page.getByTestId("run-output")).toContainText("45", { timeout: 90_000 });
 });

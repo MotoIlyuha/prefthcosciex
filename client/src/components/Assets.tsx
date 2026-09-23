@@ -10,11 +10,20 @@ export function svgSrc(content: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`;
 }
 
-export function Figures({ assets }: { assets: AssetMeta[] }) {
+/** Inline SVG assets referenced from the statement as `![…](asset:name)`. */
+export function assetImages(assets: AssetMeta[]): (name: string) => string | null {
+  return (name) => {
+    const asset = assets.find((a) => a.name === name && a.kind === "svg" && a.content);
+    return asset ? svgSrc(asset.content ?? "") : null;
+  };
+}
+
+/** Figures the statement does not place itself are shown after it. */
+export function Figures({ assets, statement = "" }: { assets: AssetMeta[]; statement?: string }) {
   return (
     <>
       {assets
-        .filter((a) => a.kind === "svg" && a.content)
+        .filter((a) => a.kind === "svg" && a.content && !statement.includes(`asset:${a.name}`))
         .map((a) => (
           <img key={a.name} src={svgSrc(a.content ?? "")} alt={`Рисунок ${a.name}`} className="figure" />
         ))}

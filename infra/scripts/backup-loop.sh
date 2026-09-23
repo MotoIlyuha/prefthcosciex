@@ -1,22 +1,36 @@
 #!/bin/sh
-# Nightly PostgreSQL dump (design doc 12.7): kept 30 days, restore checked monthly
+# Nightly PostgreSQL dump (design doc 12.7): copied to S3/MinIO (bucket
+# ${S3_BUCKET}-backups, 30 days) and kept locally for 7 days; restore is checked monthly
 # with infra/scripts/restore-check.sh. Runs in the `backup` sidecar of compose.stage.yaml.
 set -eu
 : "${POSTGRES_USER:?}" "${POSTGRES_PASSWORD:?}" "${POSTGRES_DB:?}"
 export PGPASSWORD="$POSTGRES_PASSWORD"
 KEEP_DAYS="${BACKUP_KEEP_DAYS:-30}"
+LOCAL_DAYS="${BACKUP_LOCAL_DAYS:-7}"
+BUCKET="${S3_BUCKET:-bayt}-backups"
 mkdir -p /backups
+if [ -n "${S3_ENDPOINT:-}" ] && command -v mc >/dev/null; then
+  mc alias set s3 "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" >/dev/null
+  mc mb --ignore-existing "s3/$BUCKET" >/dev/null
+  remote=1
+else
+  remote=0
+fi
 while true; do
   stamp="$(date -u +%Y%m%dT%H%M%SZ)"
   file="/backups/bayt-${stamp}.dump"
   if pg_dump -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f "${file}.part"; then
     mv "${file}.part" "$file"
     echo "backup ok: $file ($(du -h "$file" | cut -f1))"
+    if [ "$remote" = 1 ]; then
+      mc cp --quiet "$file" "s3/$BUCKET/" && echo "copied to s3/$BUCKET"
+      mc rm --recursive --force --older-than "${KEEP_DAYS}d" "s3/$BUCKET/" >/dev/null || true
+    fi
   else
     rm -f "${file}.part"
     echo "backup FAILED at $stamp" >&2
   fi
-  find /backups -name 'bayt-*.dump' -mtime +"$KEEP_DAYS" -delete
+  find /backups -name 'bayt-*.dump' -mtime +"$LOCAL_DAYS" -delete
   # Next run at 03:30 UTC.
   now=$(date -u +%s)
   next=$(date -u -d "$(date -u +%Y-%m-%d) 03:30" +%s 2>/dev/null || echo $((now + 86400)))

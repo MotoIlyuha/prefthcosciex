@@ -61,3 +61,17 @@ def test_pairs_list_reports_format() -> None:
 def test_unknown_kind_raises() -> None:
     with pytest.raises(ValueError):
         check("nope", "1", "1")  # type: ignore[arg-type]
+
+
+def test_custom_checker_accepts_listed_spellings() -> None:
+    from egegen.checkers import check
+
+    opts = {"accepted": ["192.168.0.0"], "normalize": "text"}
+    assert check("custom", "192.168.0.0", "192168000", opts).correct
+    assert check("custom", " 192168000 ", "192168000", opts).correct
+    assert not check("custom", "10.0.0.0", "192168000", opts).correct
+    assert check("custom", "", "x", opts).reason
+    digits = {"normalize": "digits"}
+    assert check("custom", "1 024", "1024", digits).correct
+    letters = {"normalize": "letters", "accepted": ["БВА"]}
+    assert check("custom", "б, в, а", "АБВ", letters).correct

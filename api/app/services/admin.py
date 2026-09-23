@@ -573,3 +573,42 @@ async def audit(session: AsyncSession, limit: int = 200) -> list[dict[str, Any]]
         }
         for r in rows
     ]
+
+
+async def runner_smoke() -> dict[str, Any]:
+    """Section 7 smoke: one program through the sandbox, and the network stays closed."""
+    from app.services import runner_client
+
+    code = (
+        "import socket\n"
+        "print(sum(range(10)))\n"
+        "try:\n"
+        "    socket.create_connection(('1.1.1.1', 53), timeout=2)\n"
+        "    print('network: OPEN')\n"
+        "except OSError:\n"
+        "    print('network: blocked')\n"
+    )
+    try:
+        result = await runner_client.run(code, {"x.txt": b"1\n"})
+    except runner_client.RunnerUnavailableError as exc:
+        raise ApiError(503, "runner_unavailable", f"Раннер недоступен: {exc}") from exc
+    lines = result.stdout.split()
+    return {
+        "ok": result.ok and lines[:1] == ["45"] and "blocked" in result.stdout,
+        "stdout": result.stdout,
+        "stderr": result.stderr[-2000:],
+        "duration_ms": result.duration_ms,
+    }
+
+
+async def notify_admin(session: AsyncSession, admin: User) -> dict[str, Any]:
+    """Section 7 smoke: a real message from the bot to the admin who pressed the button."""
+    from app.services.telegram import TelegramError, send_message
+
+    try:
+        await send_message(admin.tg_id, "Проверка уведомлений «Байта»: бот на связи ✅")
+    except TelegramError as exc:
+        raise ApiError(502, "telegram_error", f"Telegram не принял сообщение: {exc}") from exc
+    session.add(AuditLog(actor_id=admin.id, action="notify_test", target=f"user:{admin.id}"))
+    await session.commit()
+    return {"sent": True}

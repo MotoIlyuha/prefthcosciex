@@ -51,3 +51,15 @@ export async function typeAnswer(page: Page, answer: string): Promise<void> {
     await page.getByTestId("answer-input").fill(answer);
   }
 }
+
+/** Submit the answer; if the method check appears (too fast), pick the listed method. */
+export async function submitAnswer(page: Page): Promise<void> {
+  await page.getByTestId("submit-answer").click();
+  const result = page.getByTestId("answer-result");
+  const dialog = page.getByRole("dialog");
+  await expect(result.or(dialog)).toBeVisible();
+  if (await dialog.isVisible()) {
+    await dialog.getByRole("button").nth(1).click();
+    await expect(result).toBeVisible();
+  }
+}

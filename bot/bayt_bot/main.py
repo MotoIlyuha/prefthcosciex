@@ -11,6 +11,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    MenuButtonWebApp,
     Message,
     User,
     WebAppInfo,
@@ -20,7 +21,7 @@ from aiohttp import web
 
 from bayt_bot.api import ApiClient
 from bayt_bot.config import Config
-from bayt_bot.texts import HELP, Reply, parse_start, start_reply, web_reply
+from bayt_bot.texts import HELP, Reply, normalize_payload, parse_start, start_reply, web_reply
 from bayt_bot.throttle import Throttle
 
 log = logging.getLogger("bayt.bot")
@@ -55,7 +56,7 @@ def build_router(config: Config, api: ApiClient) -> Router:
     async def start(message: Message) -> None:
         if message.from_user is None:
             return
-        payload = parse_start(message.text)
+        payload = normalize_payload(parse_start(message.text))
         if payload == "web":
             url = await api.web_link(tg_user(message.from_user))
             reply = web_reply(url)
@@ -107,6 +108,12 @@ async def run() -> None:
         return
     if not config.webhook_secret:
         raise SystemExit("TELEGRAM_WEBHOOK_SECRET is required in webhook mode")
+    # The Mini App button next to the input field in every chat with the bot.
+    await bot.set_chat_menu_button(
+        menu_button=MenuButtonWebApp(
+            text="Открыть «Байт»", web_app=WebAppInfo(url=f"{config.public_base_url}/")
+        )
+    )
     await bot.set_webhook(
         f"{config.public_base_url}{WEBHOOK_PATH}",
         secret_token=config.webhook_secret,

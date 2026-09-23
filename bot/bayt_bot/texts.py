@@ -40,8 +40,14 @@ def parse_start(text: str | None) -> str:
     return payload if START_PARAM.fullmatch(payload) else ""
 
 
+def normalize_payload(payload: str) -> str:
+    """``curator_<token>`` is the long spelling of ``cur_<token>`` (build prompt, stage 1)."""
+    return "cur_" + payload[len("curator_") :] if payload.startswith("curator_") else payload
+
+
 def start_reply(payload: str, result: dict[str, Any], base: str) -> Reply:
     """Answer to ``/start <payload>`` after the API registered the chat."""
+    payload = normalize_payload(payload)
     open_app = ("Открыть «Байт»", "webapp", app_url(base))
     if payload.startswith("cur_"):
         if "curator" in result:

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { FileChips, Figures } from "../components/Assets";
+import { FileChips, Figures, assetImages } from "../components/Assets";
 import { CodePanel, useDraftSaver } from "../components/CodePanel";
 import { Button, Card, Chip, ErrorView, Sheet, Spinner, useToast } from "../components/ui";
 import { api, ApiError, newKey } from "../lib/api";
@@ -130,6 +130,8 @@ export function TaskScreen() {
       }, answerKey.current),
     onSuccess: (r) => {
       if (r.status === "method_check") {
+        // The question is not an attempt: the reply with a method is a new request.
+        answerKey.current = newKey();
         setMethodQuestion(r);
         return;
       }
@@ -150,7 +152,7 @@ export function TaskScreen() {
     onError: (error) => toast(error instanceof ApiError ? error.message : "Нет связи", "bad"),
   });
 
-  const warning = task ? answerWarning(task.answer_kind, answer) : null;
+  const warning = task ? answerWarning(task.answer_kind, answer, task.checker_options) : null;
   const checklistNeeded = task?.checklist?.length ? checklistDone.size < task.checklist.length : false;
   const canSubmit = Boolean(task && isOpen && !warning && !checklistNeeded && !submit.isPending);
   const doSubmit = useCallback(() => {
@@ -250,8 +252,8 @@ export function TaskScreen() {
         </div>
       </header>
 
-      <Markdown source={task.statement_md} className="md statement" />
-      <Figures assets={task.assets} />
+      <Markdown source={task.statement_md} className="md statement" resolveImage={assetImages(task.assets)} />
+      <Figures assets={task.assets} statement={task.statement_md} />
       <FileChips instanceId={task.id} assets={task.assets} />
       {task.code_rule ? <p className="note">ℹ️ {task.code_rule}</p> : null}
 

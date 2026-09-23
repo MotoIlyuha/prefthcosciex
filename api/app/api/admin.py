@@ -135,3 +135,13 @@ async def broadcast_demo(body: DemoIn, user: AdminUser, session: Session) -> dic
 @router.get("/audit")
 async def audit(user: AdminUser, session: Session) -> list[dict[str, Any]]:
     return await admin.audit(session)
+
+
+@router.post("/runner/smoke")
+async def runner_smoke(user: AdminUser) -> dict[str, Any]:
+    return await admin.runner_smoke()
+
+
+@router.post("/notify/test")
+async def notify_test(user: AdminUser, session: Session) -> dict[str, Any]:
+    return await admin.notify_admin(session, user)

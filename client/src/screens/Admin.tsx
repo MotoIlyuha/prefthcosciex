@@ -200,8 +200,22 @@ function Misc() {
     const r = await api.post<{ scheduled: number }>("/admin/broadcast/demo", { summary }, false);
     toast(`Запланировано: ${r.scheduled}`, "good");
   };
+  const smoke = async (path: string) => {
+    try {
+      const r = await api.post<Record<string, unknown>>(path, {}, false);
+      toast(JSON.stringify(r).slice(0, 180), "good");
+    } catch (error) {
+      toast(error instanceof ApiError ? error.message : "Не получилось", "bad");
+    }
+  };
   return (
     <>
+      <Section title="Смоук стенда">
+        <div className="row gap wrap">
+          <Button small kind="secondary" onClick={() => void smoke("/admin/runner/smoke")}>Прогон кода в раннере</Button>
+          <Button small kind="secondary" onClick={() => void smoke("/admin/notify/test")}>Тестовое уведомление мне</Button>
+        </div>
+      </Section>
       <Section title="«Утверждена демоверсия» — рассылка">
         <textarea className="input" value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Что изменилось в 10, 13, 23, 27" />
         <Button onClick={() => void broadcast()} disabled={summary.length < 10}>Разослать</Button>

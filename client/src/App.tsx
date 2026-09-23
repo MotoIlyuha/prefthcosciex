@@ -1,5 +1,6 @@
 // App shell: sign-in, deep links, the five tabs (+ «Ученики» for curators), routes.
 import { useQuery } from "@tanstack/react-query";
+import { useSignal, viewportContentSafeAreaInsets, viewportSafeAreaInsets } from "@telegram-apps/sdk-react";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
@@ -72,6 +73,18 @@ function routeForStart(param: string): string | null {
   };
   const [screen] = param.split("_");
   return screens[screen ?? ""] ?? null;
+}
+
+/** Safe-area insets from Telegram (fullscreen on iOS/Android) as CSS variables. */
+function SafeArea() {
+  const content = useSignal(viewportContentSafeAreaInsets);
+  const device = useSignal(viewportSafeAreaInsets);
+  useEffect(() => {
+    const style = document.documentElement.style;
+    style.setProperty("--safe-top", `${(content?.top ?? 0) + (device?.top ?? 0)}px`);
+    style.setProperty("--safe-bottom", `${(content?.bottom ?? 0) + (device?.bottom ?? 0)}px`);
+  }, [content, device]);
+  return null;
 }
 
 function Tabbar({ curator }: { curator: boolean }) {
@@ -192,6 +205,7 @@ export function App() {
   }
   return (
     <div className="app">
+      {isTelegram() ? <SafeArea /> : null}
       <Main />
       <Toaster />
     </div>

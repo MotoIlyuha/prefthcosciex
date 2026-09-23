@@ -13,6 +13,7 @@ rlimits, an empty environment and, when ``unshare`` works, no network namespace.
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import resource
@@ -32,6 +33,13 @@ MAX_FILES_BYTES = 64 * 1024 * 1024
 MAX_FILE_WRITE_MB = 16
 NOBODY = 65534
 FILE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+log = logging.getLogger("bayt.runner")
+# Traces of a program trying to leave the sandbox: network, foreign files, processes.
+BLOCKED = re.compile(
+    r"Network is unreachable|Errno 101|Errno 99|PermissionError|Operation not permitted|"
+    r"No such file or directory: '/(etc|home|root|proc|sys)|Resource temporarily unavailable|"
+    r"BlockingIOError"
+)
 SYSTEM_DIRS = ("/usr", "/lib", "/lib64", "/bin", "/etc/alternatives", "/usr/local")
 
 
@@ -208,6 +216,10 @@ def run(code: str, files: dict[str, bytes], *, allow_unsafe: bool = False) -> Re
         elapsed = int((time.monotonic() - started) * 1000)
     timed_out = proc.returncode in (-9, 137) and elapsed >= WALL_LIMIT_S * 1000 - 500
     stderr = _clip(proc.stderr)
+    blocked = BLOCKED.search(stderr) or BLOCKED.search(_clip(proc.stdout))
+    if blocked:
+        # Logged without the program text: the code is the student's, the fact is ours.
+        log.warning("sandbox blocked an attempt: %s (exit %s)", blocked.group(0), proc.returncode)
     if timed_out:
         stderr = (stderr + "\nПревышен лимит времени: 10 с").strip()
     elif proc.returncode != 0 and "MemoryError" in stderr:

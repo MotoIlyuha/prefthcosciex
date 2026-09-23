@@ -99,11 +99,20 @@ export function parseBlocks(source: string): Block[] {
   return blocks;
 }
 
-const INLINE = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*\s][^*]*\*|_[^_\s][^_]*_)/g;
+const INLINE = /(!\[[^\]]*\]\([^)\s]+\)|\*\*[^*]+\*\*|`[^`]+`|\*[^*\s][^*]*\*|_[^_\s][^_]*_)/g;
+const IMAGE = /^!\[([^\]]*)\]\(([^)\s]+)\)$/;
 
-export function renderInline(text: string): ReactNode[] {
+/** Turns `asset:<name>` into an image URL; anything else is refused (no remote images). */
+export type ImageResolver = (ref: string) => string | null;
+
+export function renderInline(text: string, resolveImage?: ImageResolver): ReactNode[] {
   const parts = text.split(INLINE);
   return parts.map((part, index) => {
+    const image = IMAGE.exec(part);
+    if (image) {
+      const src = image[2]?.startsWith("asset:") ? resolveImage?.(image[2].slice(6)) : null;
+      return src ? <img key={index} src={src} alt={image[1]} className="figure" /> : <Fragment key={index}>{image[1]}</Fragment>;
+    }
     if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
       return <strong key={index}>{part.slice(2, -2)}</strong>;
     }
@@ -120,7 +129,11 @@ export function renderInline(text: string): ReactNode[] {
   });
 }
 
-export function Markdown({ source, className }: { source: string; className?: string }) {
+export function Markdown({ source, className, resolveImage }: {
+  source: string;
+  className?: string;
+  resolveImage?: ImageResolver;
+}) {
   const blocks = parseBlocks(source);
   return (
     <div className={className ?? "md"}>
@@ -131,7 +144,7 @@ export function Markdown({ source, className }: { source: string; className?: st
             return <Tag key={index}>{renderInline(block.text)}</Tag>;
           }
           case "paragraph":
-            return <p key={index}>{renderInline(block.text)}</p>;
+            return <p key={index}>{renderInline(block.text, resolveImage)}</p>;
           case "code":
             return (
               <pre key={index} className="code-block">

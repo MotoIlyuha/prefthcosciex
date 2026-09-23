@@ -13,7 +13,7 @@ from datetime import date
 from enum import StrEnum
 from typing import Any, Literal
 
-AnswerKind = Literal["int", "letters", "two_ints", "pairs_list", "string", "float"]
+AnswerKind = Literal["int", "letters", "two_ints", "pairs_list", "string", "float", "custom"]
 """Canonical answer shapes. Each maps to a checker in :mod:`egegen.checkers`."""
 
 

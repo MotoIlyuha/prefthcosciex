@@ -130,6 +130,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - run: npm audit --omit=dev --audit-level=moderate
       - run: node scripts/vendor-pyodide.mjs && npm run build && node scripts/check-size.mjs
 
   e2e:
@@ -201,4 +202,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: cp .env.example .env
-      - run: docker compose build api worker bot runner client
+      - run: docker compose -f compose.yaml -f compose.stage.yaml build api worker bot runner client backup

@@ -61,11 +61,16 @@ export const ANSWER_HINTS: Record<string, string> = {
 };
 
 /** The same normalisation the server applies, to warn before sending (7.4). */
-export function answerWarning(kind: string, raw: string): string | null {
+export function answerWarning(kind: string, raw: string, options: Record<string, unknown> = {}): string | null {
   const text = raw.trim();
   if (!text) return "Введите ответ";
   if (kind === "int" && !/^[-+]?\d+$/.test(text.replace(/\s/g, ""))) return "Ожидается целое число";
   if (kind === "two_ints" && text.split(/[\s,;]+/).filter(Boolean).length !== 2) return "Нужно два числа";
-  if (kind === "letters" && /\d/.test(text)) return "Ответ — буквы, без цифр";
+  if (kind === "letters") {
+    // The alphabet decides: task 4 answers are code words over "01".
+    const alphabet = typeof options.alphabet === "string" ? options.alphabet.toUpperCase() : "";
+    const symbols = text.replace(/[\s,;]+/g, "").toUpperCase();
+    if (alphabet && [...symbols].some((ch) => !alphabet.includes(ch))) return `Допустимы только символы: ${alphabet}`;
+  }
   return null;
 }

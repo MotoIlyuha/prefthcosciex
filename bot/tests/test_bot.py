@@ -79,3 +79,12 @@ def test_dispatcher_builds() -> None:
     config = Config("1:x", "http://api/api", "t", BASE, "s", "webhook", "app", "bayt_bot")
     dispatcher = build_dispatcher(config, ApiClient("http://api/api", "t"))
     assert dispatcher.sub_routers
+
+
+def test_long_curator_payload_is_accepted() -> None:
+    from bayt_bot.texts import normalize_payload
+
+    assert normalize_payload("curator_abc") == "cur_abc"
+    assert normalize_payload("cur_abc") == "cur_abc"
+    reply = start_reply("curator_abc", {"curator": {"status": "pending"}}, BASE)
+    assert "куратором" in reply.text

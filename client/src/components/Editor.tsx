@@ -3,11 +3,21 @@ import { python } from "@codemirror/lang-python";
 import { EditorView, basicSetup } from "codemirror";
 import { useEffect, useRef } from "react";
 
-export default function Editor({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+export default function Editor({
+  value,
+  onChange,
+  onLine,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onLine?: (line: string) => void;
+}) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const changed = useRef(onChange);
   changed.current = onChange;
+  const lineChanged = useRef(onLine);
+  lineChanged.current = onLine;
   useEffect(() => {
     if (!host.current) return;
     view.current = new EditorView({
@@ -19,6 +29,10 @@ export default function Editor({ value, onChange }: { value: string; onChange: (
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
           if (update.docChanged) changed.current(update.state.doc.toString());
+          if (update.docChanged || update.selectionSet) {
+            const head = update.state.selection.main.head;
+            lineChanged.current?.(update.state.doc.lineAt(head).text);
+          }
         }),
       ],
     });
