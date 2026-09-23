@@ -1,0 +1,89 @@
+# ---------------------------------------------------------------------------
+# Экономика «Байта» — дизайн‑док, раздел 5. Все числа здесь, в коде их нет.
+# Цены неизменны внутри сезона (5.6): меняйте их только вместе с season_id.
+# Файл валидируется при старте API (app/config/loader.py).
+# ---------------------------------------------------------------------------
+season_id: "2026-2027"
+
+# 5.2 — уровни заданий для тарифа наград.
+levels:
+  B:  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 19]
+  P:  [11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 23]
+  V:  [21, 24, 25]
+  V2: [26, 27]
+
+# 5.2 — базовая награда: [сложность 1–2, сложность 3, сложность 4–5]
+base_reward:
+  B:  [8, 10, 14]
+  P:  [12, 15, 20]
+  V:  [18, 22, 30]
+  V2: [30, 36, 45]
+
+modifiers:
+  first_attempt: 1.5
+  second_attempt: 1.0
+  later_attempts: 0.0         # «закрыта с ошибкой», разбор открыть можно
+  hint_used: 0.7
+  revealed_before_answer: 0.0
+  repeat_slot: 0.6            # задача «Повтор»
+  fast_bonus: 2               # решено быстрее целевого времени (плюс, не множитель)
+  challenge_fixed: 40         # задача «Вызов»
+  feedback_bonus: 2           # ответ на «почему было сложно»
+  feedback_bonus_per_day: 3
+  unverified_code_share: 0.5  # 7.5.2: ответ верный, метод не подтверждён
+
+# 4.4 — порог и кэп дня
+day:
+  threshold: 30
+  cap: 120
+  easy_day_threshold: 10
+  day_starts_at_hour: 5        # дейлики открываются в 05:00 по местному времени
+  similar_per_subtype_per_day: 3
+
+# 5.3 — прайс
+prices:
+  hint:   { B: 5, P: 8, V: 12, V2: 12 }
+  hints_per_instance: 2
+  reveal: { B: 10, P: 15, V: 25, V2: 25 }
+  free_reveals_per_day: 1
+  floor_base: 150
+  floor_step: 25               # этаж n = 150 + 25·n
+  exam_full: 150
+  exam_half: 60
+  exam_block: 30
+  free_full_exams_per_month: 1
+  max_exam_tickets: 3
+  freeze: 50
+  restore_base: 80
+  restore_step: 20             # +20 за каждое повторное восстановление в месяце
+  restore_window_hours: 48
+  cosmetics_min: 100
+  cosmetics_max: 500
+
+# 4.3 — серия
+streak:
+  freeze_every_days: 7
+  max_freezes: 2
+  vacation_days_per_month: 7
+  easy_days_per_week: 1
+  milestones: [7, 14, 30, 60, 100]
+
+# 5.5 — защитные клапаны
+safety:
+  ticket_compensation: 20      # подтверждённая ошибка в задаче: возврат + 20
+
+# 4.5 — ранги по XP (пороги — решение D‑015)
+ranks:
+  - { name: "Байт",     xp: 0 }
+  - { name: "Килобайт", xp: 500 }
+  - { name: "Мегабайт", xp: 2000 }
+  - { name: "Гигабайт", xp: 6000 }
+  - { name: "Терабайт", xp: 15000 }
+
+# 5.4 — целевые показатели здоровья экономики
+health:
+  spent_to_earned_min: 0.70
+  spent_to_earned_max: 0.95
+  max_average_balance: 400
+  reveal_after_error_min: 0.30
+  reveal_after_error_max: 0.50

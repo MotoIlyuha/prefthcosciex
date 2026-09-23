@@ -1,0 +1,32 @@
+# Карта этажей — дизайн‑док, раздел 3.3. Цена открытия считается из economy.yaml.
+season_id: "2026-2027"
+
+floors:
+  - { number: 1,  title: "Разминка",               tasks: [1, 4, 7],        python: "числа, print, циклы" }
+  - { number: 2,  title: "Логика и перебор",       tasks: [2, 8, 11],       python: "itertools.product, math.log2, округление вверх" }
+  - { number: 3,  title: "Алгоритмы на бумаге",    tasks: [5, 12, 10],      python: "строки, bin/int(...,2), while, replace" }
+  - { number: 4,  title: "Геометрия и системы",    tasks: [6, 14],          python: "функции, перевод в системы счисления" }
+  - { number: 5,  title: "Таблицы",                tasks: [3, 9, 18],       python: "CSV, сортировка, set" }
+  - { number: 6,  title: "Рекурсия и файлы",       tasks: [16, 17],         python: "lru_cache, чтение файла, пары соседей" }
+  - { number: 7,  title: "Игры",                   tasks: [19, 20, 21],     python: "шаблон W1/L1/W2/L2" }
+  - { number: 8,  title: "Планирование и подсчёт", tasks: [22, 13],         python: "графы зависимостей, ДП по числу программ" }
+  - { number: 9,  title: "Логика‑15",              tasks: [15],             python: "перебор параметра, импликация" }
+  - { number: 10, title: "Графы",                  tasks: [23],             python: "Дейкстра, ДП по DAG" }
+  - { number: 11, title: "Строки и числа",         tasks: [24, 25],         python: "split/regex, делители до √n, fnmatch" }
+  - { number: 12, title: "Большие данные",         tasks: [26, 27],         python: "жадность, остатки, окна" }
+  - { number: 13, title: "Финал",                  tasks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27], python: "скорость, полные варианты" }
+
+# Обязательные этажи по диапазону (3.3). Этаж 7 для A — только задание 19.
+required_floors:
+  A: [1, 2, 3, 4, 5, 6, 7]
+  B: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  C: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+
+extern:
+  tasks: 3             # экстерн = 3 из 3 на экзаменационной сложности
+  difficulty: 4
+  attempts_per_day: 1
+boss:
+  tasks: 3
+  difficulty: 4
+  pass_needed: 3
