@@ -9,10 +9,10 @@ classic way to lose this task — shows up as a mismatch.
 from __future__ import annotations
 
 import re
-from itertools import groupby
+from itertools import groupby, pairwise
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -36,7 +36,7 @@ class Task24(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t24/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t24/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         alphabet = "".join(sorted(set(rng.choice(["ABC", "ABCD", "ABCDE", "ABCDEF"]))))
@@ -106,9 +106,7 @@ class Task24(Generator):
             template_id=template.id,
             assets=[
                 Attachment("24.txt", "text/plain", "txt", (body + "\n").encode("utf-8")),
-                Attachment(
-                    "24-mini.txt", "text/plain", "txt", (mini + "\n").encode("utf-8")
-                ),
+                Attachment("24-mini.txt", "text/plain", "txt", (mini + "\n").encode("utf-8")),
             ],
             checker_options={"mini_file": "24-mini.txt"},
             meta=meta,
@@ -196,7 +194,7 @@ class Task24(Generator):
             case "no_equal_adjacent":
                 best = 1
                 length = 1
-                for a, b in zip(text, text[1:], strict=False):
+                for a, b in pairwise(text):
                     length = length + 1 if a != b else 1
                     best = max(best, length)
                 return str(best)
@@ -279,11 +277,8 @@ class Task24(Generator):
                     " default=0))\n"
                 )
             case "best_line":
-                return (
-                    "print(max(line.count('"
-                    + meta["char"]
-                    + "') for line in open('24.txt')))\n"
-                )
+                char = str(meta["char"])
+        return f"print(max(line.count('{char}') for line in open('24.txt')))\n"
         raise ValueError(meta["question"])
 
     def _solution(self, meta: dict[str, Any], answer: str) -> list[str]:
@@ -293,9 +288,7 @@ class Task24(Generator):
             "и ловит почти все ошибки.",
             "**Шаг 2.** Файл читается одной строкой: `s = open('24.txt').read().strip()`. "
             "`strip()` обязателен — иначе в конце окажется символ перевода строки.",
-            "**Шаг 3.** Один линейный проход:\n\n```python\n"
-            + self._reference_code(meta)
-            + "```",
+            "**Шаг 3.** Один линейный проход:\n\n```python\n" + self._reference_code(meta) + "```",
             f"**Ответ:** **{answer}**. Не забывайте про последний отрезок: если "
             "максимум обновляется только при «сбросе» счётчика, конец строки "
             "теряется — здесь максимум обновляется на каждом шаге.",

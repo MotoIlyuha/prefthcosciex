@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -30,7 +30,7 @@ class Task14(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t14/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t14/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         base = rng.choice([3, 4, 5, 6, 7, 8, 9] if difficulty <= 3 else [7, 8, 9, 11, 12, 14, 16])
@@ -111,9 +111,7 @@ class Task14(Generator):
             meta=meta,
         )
 
-    def _random_expression(
-        self, rng: Rng, base: int, difficulty: int
-    ) -> list[list[int]]:
+    def _random_expression(self, rng: Rng, base: int, difficulty: int) -> list[list[int]]:
         """Terms as ``[sign, base, exponent]``; the last term is a bare constant."""
         count = 2 if difficulty <= 2 else 3
         terms: list[list[int]] = []
@@ -157,11 +155,7 @@ class Task14(Generator):
         position = rng.randint(1, length - 1)
         digits[position] = "x"
         pattern = "".join(digits)
-        hits = [
-            d
-            for d in range(base)
-            if int(pattern.replace("x", DIGITS[d]), base) % divisor == 0
-        ]
+        hits = [d for d in range(base) if int(pattern.replace("x", DIGITS[d]), base) % divisor == 0]
         return (pattern, divisor) if len(hits) == 1 else (None, divisor)
 
     # -- solving ------------------------------------------------------------
@@ -251,11 +245,7 @@ class Task14(Generator):
 
     def _base_candidates(self, meta: dict[str, Any]) -> list[int]:
         value = self._evaluate(meta["terms"])
-        return [
-            base
-            for base in range(2, 37)
-            if to_base(value, base).endswith("0" * meta["zeros"])
-        ]
+        return [base for base in range(2, 37) if to_base(value, base).endswith("0" * meta["zeros"])]
 
     def enumerate_answers(self, meta: dict[str, Any]) -> list[str] | None:
         if meta["question"] == "unknown_digit":

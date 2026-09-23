@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -21,14 +21,39 @@ from egegen.core.templates import render
 from egegen.core.types import Attachment, Instance, Uniqueness
 
 DEPARTMENTS = [
-    "Бакалея", "Молоко", "Овощи", "Напитки", "Кондитерские изделия",
-    "Хлеб", "Заморозка", "Бытовая химия",
+    "Бакалея",
+    "Молоко",
+    "Овощи",
+    "Напитки",
+    "Кондитерские изделия",
+    "Хлеб",
+    "Заморозка",
+    "Бытовая химия",
 ]
 DISTRICTS = ["Центральный", "Северный", "Южный", "Заречный"]
 PRODUCT_WORDS = [
-    "Гречка", "Рис", "Сахар", "Молоко", "Кефир", "Сыр", "Морковь", "Картофель",
-    "Яблоки", "Сок", "Вода", "Чай", "Печенье", "Конфеты", "Батон", "Булочки",
-    "Пельмени", "Мороженое", "Порошок", "Мыло", "Гель", "Салфетки",
+    "Гречка",
+    "Рис",
+    "Сахар",
+    "Молоко",
+    "Кефир",
+    "Сыр",
+    "Морковь",
+    "Картофель",
+    "Яблоки",
+    "Сок",
+    "Вода",
+    "Чай",
+    "Печенье",
+    "Конфеты",
+    "Батон",
+    "Булочки",
+    "Пельмени",
+    "Мороженое",
+    "Порошок",
+    "Мыло",
+    "Гель",
+    "Салфетки",
 ]
 OPERATIONS = ["Поступление", "Продажа"]
 MOVEMENT_HEADER = ["Дата", "Артикул", "Магазин", "Операция", "Количество"]
@@ -49,7 +74,7 @@ class Task03(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t03/{subtype}: no instance with a distinguishing answer")
+        raise GenerationFailedError(f"t03/{subtype}: no instance with a distinguishing answer")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         products, shops, movements = self._random_database(rng, difficulty)
@@ -171,15 +196,32 @@ class Task03(Generator):
 
     def _ru_date(self, value: date) -> str:
         months = [
-            "января", "февраля", "марта", "апреля", "мая", "июня",
-            "июля", "августа", "сентября", "октября", "ноября", "декабря",
+            "января",
+            "февраля",
+            "марта",
+            "апреля",
+            "мая",
+            "июня",
+            "июля",
+            "августа",
+            "сентября",
+            "октября",
+            "ноября",
+            "декабря",
         ]
         return f"{value.day} {months[value.month - 1]} {value.year} года"
 
     # -- solving ------------------------------------------------------------
-    def _matches(self, row: list[Any], meta: dict[str, Any], by_article: dict[int, list[Any]],
-                 by_shop: dict[int, list[Any]], *, operation: str | None = None,
-                 inclusive: bool = True) -> bool:
+    def _matches(
+        self,
+        row: list[Any],
+        meta: dict[str, Any],
+        by_article: dict[int, list[Any]],
+        by_shop: dict[int, list[Any]],
+        *,
+        operation: str | None = None,
+        inclusive: bool = True,
+    ) -> bool:
         query = meta["query"]
         day, article, shop_id, op, _ = row
         product = by_article[article]
@@ -188,9 +230,10 @@ class Task03(Generator):
             return False
         if op != (operation if operation is not None else query["operation"]):
             return False
+        lo, hi = str(query["from"]), str(query["to"])
         if inclusive:
-            return query["from"] <= day <= query["to"]
-        return query["from"] < day < query["to"]
+            return bool(lo <= day <= hi)
+        return bool(lo < day < hi)
 
     def solve_fast(self, meta: dict[str, Any]) -> str:
         """Index the two reference tables, then make a single pass over movements."""
@@ -199,8 +242,9 @@ class Task03(Generator):
         total = 0
         for row in meta["movements"]:
             if meta["question"] in ("difference", "change"):
-                if not self._matches(row, meta, by_article, by_shop, operation="Поступление") \
-                        and not self._matches(row, meta, by_article, by_shop, operation="Продажа"):
+                if not self._matches(
+                    row, meta, by_article, by_shop, operation="Поступление"
+                ) and not self._matches(row, meta, by_article, by_shop, operation="Продажа"):
                     continue
                 sign = 1 if row[3] == "Поступление" else -1
                 total += sign * row[4]

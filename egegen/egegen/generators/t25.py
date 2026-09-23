@@ -10,7 +10,7 @@ from __future__ import annotations
 from fnmatch import fnmatch
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -33,7 +33,7 @@ class Task25(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t25/{subtype}: no instance with 1..8 answer pairs")
+        raise GenerationFailedError(f"t25/{subtype}: no instance with 1..8 answer pairs")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         meta: dict[str, Any] = {"subtype": subtype}
@@ -192,9 +192,7 @@ class Task25(Generator):
             case "divisor_sum":
                 counts = self._divisor_counts(meta["lo"], meta["hi"])
                 return sorted(
-                    (n, sum(divisors(n)))
-                    for n, total in counts.items()
-                    if total == meta["k"]
+                    (n, sum(divisors(n))) for n, total in counts.items() if total == meta["k"]
                 )
         raise ValueError(meta["question"])
 
@@ -214,9 +212,7 @@ class Task25(Generator):
                     ds = divisors(n)
                     if len(ds) != meta["k"]:
                         continue
-                    second = (
-                        sum(ds) if meta["question"] == "divisor_sum" else ds[-2]
-                    )
+                    second = sum(ds) if meta["question"] == "divisor_sum" else ds[-2]
                     out.append((n, second))
                 return sorted(out)
 
@@ -240,9 +236,7 @@ class Task25(Generator):
             return [self.solve_fast(meta)]
         import re
 
-        pattern = re.compile(
-            "^" + meta["mask"].replace("?", "[0-9]").replace("*", "[0-9]*") + "$"
-        )
+        pattern = re.compile("^" + meta["mask"].replace("?", "[0-9]").replace("*", "[0-9]*") + "$")
         m = meta["multiplier"]
         pairs = [
             (x, x // m)
@@ -272,8 +266,10 @@ class Task25(Generator):
             "count_only": "ds[-2]",
         }[meta["question"]]
         head = "cnt = 0\n" if meta["question"] == "count_only" else ""
-        body = "        cnt += 1\n" if meta["question"] == "count_only" else (
-            f"        print(n, {second})\n"
+        body = (
+            "        cnt += 1\n"
+            if meta["question"] == "count_only"
+            else (f"        print(n, {second})\n")
         )
         return (
             "def divisors(n):\n"
@@ -300,8 +296,7 @@ class Task25(Generator):
                 "**Шаг 2.** Маску проверяет `fnmatch` из стандартной библиотеки: "
                 "`?` — ровно один символ, `*` — любое количество символов, в том "
                 "числе ноль.\n\n```python\n" + self._reference_code(meta) + "```",
-                f"**Шаг 3.** Найденные пары (число и частное), по возрастанию "
-                f"числа: **{answer}**.",
+                f"**Шаг 3.** Найденные пары (число и частное), по возрастанию числа: **{answer}**.",
             ]
         return [
             "**Шаг 1.** Делители ищем перебором до квадратного корня: для каждого "

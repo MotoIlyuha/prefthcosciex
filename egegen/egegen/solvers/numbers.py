@@ -88,7 +88,7 @@ def unique_extremum(values: Iterable[int], *, largest: bool) -> int | None:
     if not items:
         return None
     target = max(items) if largest else min(items)
-    return target if items.count(target) == 1 else target
+    return target if items.count(target) == 1 else None
 
 
 def sole(values: Sequence[int]) -> int | None:

@@ -16,10 +16,9 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
 from functools import lru_cache
-from typing import TypeAlias
 
-State: TypeAlias = int | tuple[int, ...]
-MoveFn: TypeAlias = Callable[[State], list[State]]
+type State = int | tuple[int, ...]
+type MoveFn = Callable[[State], list[State]]
 
 
 class GameAnalyzer:
@@ -81,7 +80,9 @@ def one_pile_moves(adds: Sequence[int], muls: Sequence[int]) -> MoveFn:
 
     def moves(s: State) -> list[State]:
         assert isinstance(s, int)
-        return [s + a for a in adds] + [s * m for m in muls]
+        out: list[State] = [s + a for a in adds]
+        out.extend(s * m for m in muls)
+        return out
 
     return moves
 
@@ -145,10 +146,7 @@ def forces_win(
         replies = moves(m)
         if not replies:
             return True  # the opponent is stuck after our move
-        if all(
-            not is_final(r) and forces_win(r, moves, is_final, depth - 1)
-            for r in replies
-        ):
+        if all(not is_final(r) and forces_win(r, moves, is_final, depth - 1) for r in replies):
             return True
     return False
 
@@ -171,12 +169,12 @@ def naive_outcome(
     results: list[bool | None] = []
     for m in moves(state):
         if is_final(m):
-            results.append(True if not misere else False)
+            results.append(not misere)
             continue
         sub = naive_outcome(m, moves, is_final, depth - 1, misere=misere)
         results.append(None if sub is None else not sub)
     if not results:
-        return False if not misere else True
+        return misere
     if any(r is True for r in results):
         return True
     if all(r is False for r in results):

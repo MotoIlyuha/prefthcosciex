@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -44,7 +44,7 @@ class Task11(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t11/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t11/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         alphabet, alphabet_ru = rng.choice(ALPHABET_CHOICES)
@@ -151,7 +151,7 @@ class Task11(Generator):
             # Each fragment is encoded with its own symbol width, then the whole
             # identifier is rounded up to a whole number of bytes once.
             bits += meta["length2"] * bits_per_symbol(meta["alphabet2"])
-        return bytes_for_bits(bits) + meta["extra"]
+        return bytes_for_bits(bits) + int(meta["extra"])
 
     def _lengths_matching(self, meta: dict[str, Any], total_bytes: int) -> list[int]:
         out: list[int] = []
@@ -199,7 +199,7 @@ class Task11(Generator):
             bits = length * width(meta["alphabet"])
             if meta["question"] == "total_two":
                 bits += meta["length2"] * width(meta["alphabet2"])
-            return whole_bytes(bits) + meta["extra"]
+            return whole_bytes(bits) + int(meta["extra"])
 
         def to_unit(total: int, unit: str) -> int | None:
             step = {"байт": 1, "Кбайт": 1024, "Мбайт": 1024 * 1024}[unit]
@@ -211,9 +211,7 @@ class Task11(Generator):
                 return None if value is None else str(value)
             case "find_length":
                 hits = [
-                    n
-                    for n in range(1, 64)
-                    if per_record(n) * meta["users"] == meta["total_bytes"]
+                    n for n in range(1, 64) if per_record(n) * meta["users"] == meta["total_bytes"]
                 ]
                 return str(hits[0]) if len(hits) == 1 else None
             case "max_length":
@@ -253,9 +251,7 @@ class Task11(Generator):
                 f"{i2} = {bits} бит."
             )
         else:
-            steps.append(
-                f"**Шаг 2.** На одну запись {meta['length']} × {i} = {bits} бит."
-            )
+            steps.append(f"**Шаг 2.** На одну запись {meta['length']} × {i} = {bits} бит.")
         steps.append(
             f"**Шаг 3.** Округляем **вверх до целого числа байт для каждой записи "
             f"отдельно**: ⌈{bits} / 8⌉ = {bytes_for_bits(bits)} байт"

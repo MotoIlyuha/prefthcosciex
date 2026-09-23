@@ -43,9 +43,7 @@ def test_turtle_rectangle_matches_formula() -> None:
     """Appendix B task 6: a 12x8 rectangle, strictly inside and with the border."""
     poly = turtle_polygon([(12, -90), (8, -90)] * 2)
     assert count_lattice_points(poly, strict=True) == rectangle_formula(12, 8, strict=True)
-    assert count_lattice_points(poly, strict=False) == rectangle_formula(
-        12, 8, strict=False
-    )
+    assert count_lattice_points(poly, strict=False) == rectangle_formula(12, 8, strict=False)
     assert count_lattice_points(poly, strict=True) == 77
 
 
@@ -56,9 +54,9 @@ def test_executor_counts_match_appendix_b() -> None:
     assert count_through(3, 12, 20, commands) == count_programs(3, 12, commands) * (
         count_programs(12, 20, commands)
     )
-    assert count_avoiding(3, 20, 15, commands) == count_programs(
-        3, 20, commands
-    ) - count_through(3, 15, 20, commands)
+    assert count_avoiding(3, 20, 15, commands) == count_programs(3, 20, commands) - count_through(
+        3, 15, 20, commands
+    )
     # The empty program counts: f(x, x) = 1.
     assert count_programs(7, 7, commands) == 1
 
@@ -81,7 +79,7 @@ def test_dijkstra_agrees_with_floyd() -> None:
     }
     floyd = floyd_warshall(graph)
     for source in graph:
-        assert dijkstra(graph, source) == {k: v for k, v in floyd[source].items()}
+        assert dijkstra(graph, source) == dict(floyd[source])
 
 
 @pytest.mark.parametrize(

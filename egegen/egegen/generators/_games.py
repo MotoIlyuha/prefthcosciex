@@ -96,7 +96,7 @@ def analyzer_for(spec: dict[str, Any]) -> tuple[GameAnalyzer, MoveFn, Any, list[
 
             def final_one(s: State) -> bool:
                 assert isinstance(s, int)
-                return s >= target
+                return s >= int(target)
 
             states: list[State] = list(range(1, target))
             return GameAnalyzer(moves, final_one), moves, final_one, states
@@ -106,7 +106,7 @@ def analyzer_for(spec: dict[str, Any]) -> tuple[GameAnalyzer, MoveFn, Any, list[
 
             def final_two(s: State) -> bool:
                 assert isinstance(s, tuple)
-                return s[0] + s[1] >= target
+                return s[0] + s[1] >= int(target)
 
             states = [(fixed, k) for k in range(1, target - fixed)]
             return GameAnalyzer(moves, final_two), moves, final_two, states
@@ -134,9 +134,7 @@ def state_value(state: State, spec: dict[str, Any]) -> int:
 def scan(spec: dict[str, Any], predicate: str) -> list[int]:
     """Values of S satisfying one of W1/L1/W2/L2, in increasing order."""
     analyzer, _, _, states = analyzer_for(spec)
-    return sorted(
-        state_value(s, spec) for s in analyzer.scan(states, predicate)
-    )
+    return sorted(state_value(s, spec) for s in analyzer.scan(states, predicate))
 
 
 def scan_naive(spec: dict[str, Any], predicate: str) -> list[int]:
@@ -177,15 +175,12 @@ def describe_moves(spec: dict[str, Any]) -> str:
     match spec["kind"]:
         case "one_pile":
             parts = [f"добавить в кучу {k} " + _stones(k) for k in spec["adds"]]
-            parts += [
-                "увеличить количество камней в куче в " + _times(k) for k in spec["muls"]
-            ]
+            parts += ["увеличить количество камней в куче в " + _times(k) for k in spec["muls"]]
             return "; ".join(parts)
         case "two_piles":
             parts = [f"добавить {k} " + _stones(k) + " в одну из куч" for k in spec["adds"]]
             parts += [
-                "увеличить количество камней в одной из куч в " + _times(k)
-                for k in spec["muls"]
+                "увеличить количество камней в одной из куч в " + _times(k) for k in spec["muls"]
             ]
             return "; ".join(parts)
         case "decreasing":

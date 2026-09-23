@@ -112,12 +112,12 @@ def turtle_svg(
 
     parts = [_header(width, height), f"<title>{escape(title)}</title>"]
     for gx in range(min_x, max_x + 1, grid_step):
-        parts.append(f'<line class="g" x1="{sx(gx)}" y1="{pad}" x2="{sx(gx)}" y2="{height - pad}"/>')
+        parts.append(
+            f'<line class="g" x1="{sx(gx)}" y1="{pad}" x2="{sx(gx)}" y2="{height - pad}"/>'
+        )
     for gy in range(min_y, max_y + 1, grid_step):
         parts.append(f'<line class="g" x1="{pad}" y1="{sy(gy)}" x2="{width - pad}" y2="{sy(gy)}"/>')
-    d = " ".join(
-        ("M" if i == 0 else "L") + f"{sx(x)} {sy(y)}" for i, (x, y) in enumerate(path)
-    )
+    d = " ".join(("M" if i == 0 else "L") + f"{sx(x)} {sy(y)}" for i, (x, y) in enumerate(path))
     parts.append(f'<path class="p" d="{d}"/>')
     for mx, my in marks:
         parts.append(f'<circle cx="{sx(mx)}" cy="{sy(my)}" r="3" fill="currentColor"/>')
@@ -173,5 +173,51 @@ def grid_svg(
             f'<line x1="{coords[0]}" y1="{coords[1]}" x2="{coords[2]}" y2="{coords[3]}" '
             f'stroke="currentColor" stroke-width="4" stroke-linecap="square"/>'
         )
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def dag_svg(
+    labels: Sequence[str],
+    layers: Sequence[Sequence[int]],
+    edges: Iterable[tuple[int, int]],
+    *,
+    width: int = 340,
+    title: str = "Ориентированный граф",
+) -> str:
+    """A layered drawing of a directed acyclic graph, arcs pointing left to right."""
+    node_radius = 15
+    gap_x = max(60, (width - 2 * node_radius - 20) // max(1, len(layers) - 1))
+    gap_y = 56
+    height = max(len(layer) for layer in layers) * gap_y + 40
+    positions: dict[int, Point] = {}
+    for column, layer in enumerate(layers):
+        offset = (height - (len(layer) - 1) * gap_y) // 2
+        for row, node in enumerate(layer):
+            positions[node] = Point(node_radius + 12 + column * gap_x, offset + row * gap_y)
+
+    parts = [
+        _header(width, height),
+        f"<title>{escape(title)}</title>",
+        '<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" '
+        'markerHeight="6" orient="auto-start-reverse">'
+        '<path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>',
+    ]
+    for a, b in edges:
+        pa, pb = positions[a], positions[b]
+        dx, dy = pb.x - pa.x, pb.y - pa.y
+        length = max(1.0, math.hypot(dx, dy))
+        # Stop the arc at the circle's edge so the arrowhead is not hidden.
+        sx = round(pa.x + dx / length * node_radius)
+        sy = round(pa.y + dy / length * node_radius)
+        ex = round(pb.x - dx / length * (node_radius + 3))
+        ey = round(pb.y - dy / length * (node_radius + 3))
+        parts.append(
+            f'<line class="e" x1="{sx}" y1="{sy}" x2="{ex}" y2="{ey}" marker-end="url(#a)"/>'
+        )
+    for node, label in enumerate(labels):
+        p = positions[node]
+        parts.append(f'<circle class="n" cx="{p.x}" cy="{p.y}" r="{node_radius}"/>')
+        parts.append(f'<text class="t" x="{p.x}" y="{p.y}">{escape(label)}</text>')
     parts.append("</svg>")
     return "".join(parts)

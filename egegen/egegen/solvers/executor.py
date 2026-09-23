@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from functools import lru_cache
+from functools import cache
 
 COMMAND_LIBRARY: dict[str, tuple[str, Callable[[int], int], bool]] = {
     # id -> (Russian label, transform, monotone-increasing?)
@@ -33,7 +33,7 @@ def count_programs(a: int, b: int, commands: Sequence[str]) -> int:
     """
     fns = [COMMAND_LIBRARY[c][1] for c in commands]
 
-    @lru_cache(maxsize=None)
+    @cache
     def f(x: int) -> int:
         if x > b:
             return 0
@@ -61,7 +61,7 @@ def count_programs_bounded(
     """
     fns = [COMMAND_LIBRARY[c][1] for c in commands]
 
-    @lru_cache(maxsize=None)
+    @cache
     def f(x: int, steps_left: int) -> int:
         if x == b:
             # The program may stop here, or keep going and come back.
@@ -123,9 +123,7 @@ def count_avoiding(a: int, b: int, c: int, commands: Sequence[str]) -> int:
     return count_programs(a, b, commands) - count_through(a, c, b, commands)
 
 
-def count_through_not_through(
-    a: int, c: int, d: int, b: int, commands: Sequence[str]
-) -> int:
+def count_through_not_through(a: int, c: int, d: int, b: int, commands: Sequence[str]) -> int:
     """Programs through ``c`` but avoiding ``d`` (``c < d`` is assumed by the caller)."""
     return count_programs(a, c, commands) * count_avoiding(c, b, d, commands)
 

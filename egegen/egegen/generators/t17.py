@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -35,7 +35,7 @@ class Task17(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t17/{subtype}: no instance with a usable count")
+        raise GenerationFailedError(f"t17/{subtype}: no instance with a usable count")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         size = 5000 + rng.randint(0, 3) * 1000
@@ -82,9 +82,7 @@ class Task17(Generator):
             meta=meta,
         )
 
-    def _condition(
-        self, rng: Rng, difficulty: int, subtype: str
-    ) -> dict[str, Any] | None:
+    def _condition(self, rng: Rng, difficulty: int, subtype: str) -> dict[str, Any] | None:
         # Divisors are chosen so the hit count lands in the 5..500 band the doc asks
         # for; a smaller divisor would match thousands of groups and stop testing
         # anything but the reading of the file.
@@ -136,10 +134,7 @@ class Task17(Generator):
     def _describe(self, condition: dict[str, Any]) -> str:
         match condition["kind"]:
             case "both_divisible":
-                return (
-                    f"оба числа пары делятся на {condition['divisor']} "
-                    "без остатка"
-                )
+                return f"оба числа пары делятся на {condition['divisor']} без остатка"
             case "exactly_one":
                 return (
                     f"**ровно одно** из двух чисел делится на {condition['divisor']}, "
@@ -157,15 +152,9 @@ class Task17(Generator):
                     f"и делится на {condition['divisor']}"
                 )
             case "triple_sum":
-                return (
-                    "все три числа положительны, а их сумма делится на "
-                    f"{condition['divisor']}"
-                )
+                return f"все три числа положительны, а их сумма делится на {condition['divisor']}"
             case "distance_pair":
-                return (
-                    "оба числа положительны, а их сумма делится на "
-                    f"{condition['divisor']}"
-                )
+                return f"оба числа положительны, а их сумма делится на {condition['divisor']}"
         raise ValueError(condition["kind"])
 
     # -- solving ------------------------------------------------------------
@@ -178,18 +167,16 @@ class Task17(Generator):
         candidates = [x for x in numbers if abs(x) % 10 == digit]
         return max(candidates) if candidates else None
 
-    def _group_ok(
-        self, group: list[int], condition: dict[str, Any], threshold: int | None
-    ) -> bool:
+    def _group_ok(self, group: list[int], condition: dict[str, Any], threshold: int | None) -> bool:
         match condition["kind"]:
             case "both_divisible":
                 return all(x % condition["divisor"] == 0 for x in group)
             case "exactly_one":
                 hits = sum(x % condition["divisor"] == 0 for x in group)
-                return hits == 1 and sum(group) % condition["sum_divisor"] == 0
+                return hits == 1 and sum(group) % int(condition["sum_divisor"]) == 0
             case "at_least_one":
                 hits = sum(x % condition["divisor"] == 0 for x in group)
-                return hits >= 1 and sum(group) % condition["sum_divisor"] == 0
+                return hits >= 1 and sum(group) % int(condition["sum_divisor"]) == 0
             case "global_reference":
                 return (
                     threshold is not None
@@ -199,7 +186,7 @@ class Task17(Generator):
             case "triple_sum" | "distance_pair":
                 if condition.get("positive") and any(x <= 0 for x in group):
                     return False
-                return sum(group) % condition["divisor"] == 0
+                return sum(group) % int(condition["divisor"]) == 0
         raise ValueError(condition["kind"])
 
     def _scan_indexed(self, meta: dict[str, Any]) -> tuple[int, int]:
@@ -213,7 +200,7 @@ class Task17(Generator):
             else None
         )
         count = 0
-        best = -10**9
+        best = -(10**9)
         last = len(numbers) - (gap * (span - 1))
         for i in range(last):
             group = [numbers[i + gap * k] for k in range(span)]
@@ -280,8 +267,7 @@ class Task17(Generator):
             "global_reference": f"x + y > m and (x + y) % {condition.get('divisor')} == 0",
             "triple_sum": f"x > 0 and y > 0 and z > 0 and "
             f"(x + y + z) % {condition.get('divisor')} == 0",
-            "distance_pair": f"x > 0 and y > 0 and "
-            f"(x + y) % {condition.get('divisor')} == 0",
+            "distance_pair": f"x > 0 and y > 0 and (x + y) % {condition.get('divisor')} == 0",
         }[condition["kind"]]
         return (
             head
@@ -309,8 +295,10 @@ class Task17(Generator):
                 f"**{threshold}**."
             )
         steps.append(
-            "**Шаг " + ("3" if condition["kind"] == "global_reference" else "2") + "." +
-            " Один проход по индексам, накапливаем счётчик и максимум:\n\n```python\n"
+            "**Шаг "
+            + ("3" if condition["kind"] == "global_reference" else "2")
+            + "."
+            + " Один проход по индексам, накапливаем счётчик и максимум:\n\n```python\n"
             + self._reference_code(meta)
             + "```"
         )

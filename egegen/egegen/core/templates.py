@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import string
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -60,7 +60,7 @@ class _SafeFormatter(string.Formatter):
     missing key is a hard error surfaced during template tests.
     """
 
-    def get_value(self, key: Any, args: Any, kwargs: Any) -> Any:  # noqa: ANN401
+    def get_value(self, key: Any, args: Any, kwargs: Any) -> Any:
         if isinstance(key, str):
             if key not in kwargs:
                 raise ConfigError(f"template placeholder {{{key}}} has no value")
@@ -71,11 +71,11 @@ class _SafeFormatter(string.Formatter):
 _FORMATTER = _SafeFormatter()
 
 
-def render(template: Template, **values: Any) -> str:  # noqa: ANN401
+def render(template: Template, **values: Any) -> str:
     return _FORMATTER.vformat(template.text, (), values).strip()
 
 
-@lru_cache(maxsize=None)
+@cache
 def load_templates(task_no: int) -> TaskTemplates:
     path = TEMPLATES_DIR / f"t{task_no:02d}.yaml"
     if not path.exists():
@@ -101,7 +101,9 @@ def load_templates(task_no: int) -> TaskTemplates:
         for t in (raw.get("templates") or [])
     ]
     if len(templates) < 5:
-        raise ConfigError(f"{path}: at least 5 formulation templates required, got {len(templates)}")
+        raise ConfigError(
+            f"{path}: at least 5 formulation templates required, got {len(templates)}"
+        )
     for t in templates:
         if t.subtype != "*" and t.subtype not in subtypes:
             raise ConfigError(f"{path}: template {t.id} references unknown subtype {t.subtype!r}")

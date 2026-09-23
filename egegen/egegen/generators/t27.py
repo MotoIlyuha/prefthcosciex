@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.fipi import load_fipi_config
 from egegen.core.generator import Generator
 from egegen.core.registry import register
@@ -24,7 +24,7 @@ from egegen.core.types import Attachment, Instance, Uniqueness
 BRUTE_LIMIT = 2000
 A_SIZES = {1: 400, 2: 1000, 3: 2000, 4: 5000, 5: 0}
 B_SIZES = {1: 20_000, 2: 50_000, 3: 200_000, 4: 500_000, 5: 0}
-VALUE_LO, VALUE_HI = -10**6, 10**6
+VALUE_LO, VALUE_HI = -(10**6), 10**6
 
 
 class Task27(Generator):
@@ -43,7 +43,7 @@ class Task27(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t27/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t27/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         cfg = load_fipi_config().t27
@@ -114,16 +114,12 @@ class Task27(Generator):
             statement_md=statement,
             answer=answer,
             answer_kind="two_ints" if cfg.answer_layout == "one_line_pair" else "string",
-            checker=(
-                "int_pair_ordered" if cfg.answer_layout == "one_line_pair" else "two_lines"
-            ),
+            checker=("int_pair_ordered" if cfg.answer_layout == "one_line_pair" else "two_lines"),
             solution_steps=self._solution(meta, answer_a, answer_b),
             reference_code=self._reference_code(meta),
             template_id=template.id,
             assets=[
-                Attachment(
-                    "27A.txt", "text/plain", "txt", to_txt([a_size, *a_values])
-                ),
+                Attachment("27A.txt", "text/plain", "txt", to_txt([a_size, *a_values])),
                 Attachment(
                     "27B-mini.txt",
                     "text/plain",
@@ -320,10 +316,7 @@ class Task27(Generator):
                 return best
             case "count_pairs":
                 return sum(
-                    1
-                    for i in range(n)
-                    for j in range(i + k, n)
-                    if (values[i] + values[j]) % m == 0
+                    1 for i in range(n) for j in range(i + k, n) if (values[i] + values[j]) % m == 0
                 )
         return None
 
@@ -331,7 +324,7 @@ class Task27(Generator):
         a = self._solve_stream(meta["a_values"], meta)
         b = self._solve_stream(self._values_b(meta), meta)
         if a is None or b is None:
-            raise GenerationFailed("t27: no qualifying pair")
+            raise GenerationFailedError("t27: no qualifying pair")
         return self._format(a, b, meta)
 
     def solve_naive(self, meta: dict[str, Any]) -> str | None:

@@ -10,7 +10,7 @@ from __future__ import annotations
 from fractions import Fraction
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -45,7 +45,7 @@ class Task07(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t07/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t07/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         builder = {
@@ -93,9 +93,7 @@ class Task07(Generator):
             "colours": colours,
             "unit": unit,
         }
-        return meta, {
-            "width": width, "height": height, "colours": colours, "unit": unit
-        }
+        return meta, {"width": width, "height": height, "colours": colours, "unit": unit}
 
     def _ratio(self, rng: Rng, difficulty: int) -> tuple[dict[str, Any], dict[str, Any]] | None:
         scale = rng.choice([2, 4, 8])
@@ -116,9 +114,7 @@ class Task07(Generator):
         ratio = Fraction(scale * scale * old_bits, new_bits)
         if ratio.denominator != 1 or ratio == 1:
             return None
-        return meta, {
-            "scale": scale, "old_colours": old_colours, "new_colours": new_colours
-        }
+        return meta, {"scale": scale, "old_colours": old_colours, "new_colours": new_colours}
 
     def _sound(self, rng: Rng, difficulty: int) -> tuple[dict[str, Any], dict[str, Any]] | None:
         freq_khz = rng.choice([8, 16, 24, 32, 48, 64])
@@ -163,7 +159,10 @@ class Task07(Generator):
         if bits % rate != 0 or bits // rate < 2:
             return None
         return meta, {
-            "size": size, "size_unit": size_unit, "speed": speed, "speed_unit": speed_unit
+            "size": size,
+            "size_unit": size_unit,
+            "speed": speed,
+            "speed_unit": speed_unit,
         }
 
     def _palette(self, rng: Rng, difficulty: int) -> tuple[dict[str, Any], dict[str, Any]] | None:
@@ -209,7 +208,11 @@ class Task07(Generator):
                 return str(scale * scale * old_bits // new_bits)
             case "sound":
                 bits = (
-                    meta["freq_khz"] * 1000 * meta["depth"] * meta["minutes"] * 60
+                    meta["freq_khz"]
+                    * 1000
+                    * meta["depth"]
+                    * meta["minutes"]
+                    * 60
                     * meta["channels"]
                 )
                 return str(bits // BIT_UNITS[meta["unit"]])
@@ -228,6 +231,7 @@ class Task07(Generator):
         This never calls :func:`math.log2` or an integer division shortcut, so a wrong
         constant or a missing ceiling in the fast path shows up as a mismatch.
         """
+
         def ceil_log2(k: int) -> int:
             bits, capacity = 0, 1
             while capacity < k:
@@ -320,7 +324,11 @@ class Task07(Generator):
                 ]
             case "sound":
                 bits = (
-                    meta["freq_khz"] * 1000 * meta["depth"] * meta["minutes"] * 60
+                    meta["freq_khz"]
+                    * 1000
+                    * meta["depth"]
+                    * meta["minutes"]
+                    * 60
                     * meta["channels"]
                 )
                 return [
@@ -337,12 +345,10 @@ class Task07(Generator):
                 bits = meta["size"] * BIT_UNITS[meta["size_unit"]]
                 rate = meta["speed"] * SPEED_UNITS[meta["speed_unit"]]
                 return [
-                    f"**Шаг 1.** Объём в битах: {meta['size']} {meta['size_unit']} = "
-                    f"{bits} бит.",
+                    f"**Шаг 1.** Объём в битах: {meta['size']} {meta['size_unit']} = {bits} бит.",
                     f"**Шаг 2.** Скорость в битах в секунду: {meta['speed']} "
                     f"{meta['speed_unit']} = {rate} бит/с.",
-                    f"**Шаг 3.** Время = объём / скорость = {bits} / {rate} = "
-                    f"**{answer}** с.",
+                    f"**Шаг 3.** Время = объём / скорость = {bits} / {rate} = **{answer}** с.",
                 ]
             case "max_colours":
                 bits = meta["budget"] * BIT_UNITS[meta["unit"]]

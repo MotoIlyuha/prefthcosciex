@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -49,7 +49,7 @@ class Task05(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t05/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t05/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         base = 3 if subtype == "5.6_ternary" else 2
@@ -141,9 +141,7 @@ class Task05(Generator):
         naming = "двоичной" if base == 2 else "троичной"
         lines = [f"1. Строится {naming} запись числа N (без ведущих нулей)."]
         lines += [f"{i + 2}. {STEP_LABELS[s]}" for i, s in enumerate(steps)]
-        lines.append(
-            f"{len(steps) + 2}. Результат переводится в десятичную систему — это R."
-        )
+        lines.append(f"{len(steps) + 2}. Результат переводится в десятичную систему — это R.")
         return "\n".join(lines)
 
     def _example(self, meta: dict[str, Any], rng: Rng) -> str | None:
@@ -269,7 +267,7 @@ class Task05(Generator):
         answer = self._answer(meta, self._apply_str)
         return answer or None
 
-    def _answer(self, meta: dict[str, Any], run: Any) -> str:  # noqa: ANN401
+    def _answer(self, meta: dict[str, Any], run: Any) -> str:
         question = meta["question"]
         limit: int = meta["limit"]
         if question == "unreachable":
@@ -312,9 +310,7 @@ class Task05(Generator):
             }
             return [str(o) for o in meta["options"] if o not in reachable]
         if question == "by_result":
-            return [
-                str(n) for n in range(1, 400) if self._apply_int(n, meta) == meta["target"]
-            ]
+            return [str(n) for n in range(1, 400) if self._apply_int(n, meta) == meta["target"]]
         answer = self.solve_fast(meta)
         return [answer] if answer else []
 

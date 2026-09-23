@@ -7,11 +7,11 @@ raising the recursion limit — the two ways the exam's own template suggests.
 
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache
 from typing import Any
 
 from egegen.core.deeprec import run_deep
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -34,7 +34,7 @@ class Task16(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t16/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t16/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         spec = self._random_spec(rng, difficulty, subtype)
@@ -89,9 +89,7 @@ class Task16(Generator):
             meta=meta,
         )
 
-    def _random_spec(
-        self, rng: Rng, difficulty: int, subtype: str
-    ) -> dict[str, Any] | None:
+    def _random_spec(self, rng: Rng, difficulty: int, subtype: str) -> dict[str, Any] | None:
         match subtype:
             case "16.3_parity_branch":
                 family = "parity"
@@ -122,7 +120,7 @@ class Task16(Generator):
 
     # -- recurrence semantics ----------------------------------------------
     def _step(self, spec: dict[str, Any], n: int, previous: int) -> int:
-        a, b = spec["a"], spec["b"]
+        a, b = int(spec["a"]), int(spec["b"])
         match spec["family"]:
             case "shift_add":
                 return previous + a * n + b
@@ -136,7 +134,7 @@ class Task16(Generator):
 
     def _evaluate_bottom_up(self, spec: dict[str, Any], n: int) -> int:
         """Iterative evaluation from the base case upward — no recursion at all."""
-        base_n, base_value = spec["base_n"], spec["base_value"]
+        base_n, base_value = int(spec["base_n"]), int(spec["base_value"])
         if n <= base_n:
             return base_value
         if spec["family"] == "halving":
@@ -160,7 +158,7 @@ class Task16(Generator):
         Run on a big-stack thread: raising ``sys.setrecursionlimit`` alone is not
         enough once the chain is a few thousand frames deep.
         """
-        base_n, base_value = spec["base_n"], spec["base_value"]
+        base_n, base_value = int(spec["base_n"]), int(spec["base_value"])
         halving = spec["family"] == "halving"
         memo: dict[int, int] = {}
 
@@ -183,7 +181,7 @@ class Task16(Generator):
         The values are not cached on purpose: caching would make the recursion visit
         each argument once and hide exactly what the question asks about.
         """
-        base_n = spec["base_n"]
+        base_n = int(spec["base_n"])
         counts: dict[int, int] = {}
         for k in range(0, n + 1):
             if k <= base_n:
@@ -195,7 +193,7 @@ class Task16(Generator):
     def _count_calls_recursive(self, spec: dict[str, Any], n: int) -> int:
         base_n = spec["base_n"]
 
-        @lru_cache(maxsize=None)
+        @cache
         def calls(k: int) -> int:
             if k <= base_n:
                 return 1
@@ -211,7 +209,7 @@ class Task16(Generator):
         return grid[a][b]
 
     def _two_args_recursive(self, a: int, b: int) -> int:
-        @lru_cache(maxsize=None)
+        @cache
         def f(i: int, j: int) -> int:
             if i == 0 or j == 0:
                 return 1
@@ -304,10 +302,7 @@ class Task16(Generator):
         chain_step = {
             "shift_add": f"        value = value + {a} * k + {b}",
             "shift_mul": f"        value = {a} * value + {b}",
-            "parity": (
-                f"        value = value + {a} * k if k % 2 == 0 "
-                f"else value + {b}"
-            ),
+            "parity": (f"        value = value + {a} * k if k % 2 == 0 else value + {b}"),
         }
         if spec["family"] in chain_step:
             # Bottom-up, not recursion: the chain is a few thousand deep and a
@@ -376,9 +371,7 @@ class Task16(Generator):
             notes[1] = (
                 "**Шаг 2.** Здесь считают **вызовы**, а не значения. Кэшировать "
                 "значения нельзя — часть вызовов «исчезнет». Кэшируйте само "
-                "количество вызовов:\n\n```python\n"
-                + self._reference_code(meta)
-                + "```"
+                "количество вызовов:\n\n```python\n" + self._reference_code(meta) + "```"
             )
         if spec["family"] == "halving":
             notes.append(

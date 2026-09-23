@@ -13,7 +13,7 @@ import bisect
 from itertools import combinations
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -39,13 +39,15 @@ class Task26(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t26/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t26/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         # Difficulty 1 keeps the dataset small enough to check by exhaustive search;
         # from 2 upward it is exam sized and the cross-check is the second algorithm.
-        size = rng.randint(10, BRUTE_LIMIT) if difficulty == 1 else rng.randint(
-            1000, 20_000 * min(difficulty, 4)
+        size = (
+            rng.randint(10, BRUTE_LIMIT)
+            if difficulty == 1
+            else rng.randint(1000, 20_000 * min(difficulty, 4))
         )
         scenario = self._scenario(subtype)
         values = [rng.randint(scenario["min"], scenario["max"]) for _ in range(size)]
@@ -189,11 +191,7 @@ class Task26(Generator):
             )
         if meta["question"] == "two_containers":
             return None  # the second container follows the stated greedy rule only
-        best_item = max(
-            max(c)
-            for c in combinations(values, best_count)
-            if sum(c) <= capacity
-        )
+        best_item = max(max(c) for c in combinations(values, best_count) if sum(c) <= capacity)
         return best_count, best_item
 
     def solve_fast(self, meta: dict[str, Any]) -> str:

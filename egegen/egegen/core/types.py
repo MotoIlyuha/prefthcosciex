@@ -10,14 +10,14 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass, field
 from datetime import date
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Literal
 
 AnswerKind = Literal["int", "letters", "two_ints", "pairs_list", "string", "float"]
 """Canonical answer shapes. Each maps to a checker in :mod:`egegen.checkers`."""
 
 
-class Uniqueness(str, Enum):
+class Uniqueness(StrEnum):
     """How a generator proves its instance has exactly one correct answer."""
 
     ENUMERATED = "enumerated"

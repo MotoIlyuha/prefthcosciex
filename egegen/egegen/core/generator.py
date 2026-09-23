@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from egegen.core.cards import card_id_for
-from egegen.core.errors import UnknownSubtype
+from egegen.core.errors import UnknownSubtypeError
 from egegen.core.rng import Rng
 from egegen.core.templates import TaskTemplates, load_templates
 from egegen.core.types import AnswerKind, Instance, Uniqueness, derive_hidden_seed
@@ -55,7 +55,7 @@ class Generator(ABC):
         if subtype is None:
             subtype = self._pick_subtype(rng, difficulty)
         elif subtype not in self.subtypes:
-            raise UnknownSubtype(f"t{self.task_no:02d} has no subtype {subtype!r}")
+            raise UnknownSubtypeError(f"t{self.task_no:02d} has no subtype {subtype!r}")
 
         instance = self.build(rng.fork(f"build:{subtype}:{difficulty}"), difficulty, subtype)
         instance.seed = seed
@@ -89,7 +89,8 @@ class Generator(ABC):
         """Choose among the subtypes whose declared difficulty band covers ``difficulty``."""
         specs = self.templates.subtypes
         eligible = sorted(
-            sid for sid, spec in specs.items()
+            sid
+            for sid, spec in specs.items()
             if spec.difficulty_range[0] <= difficulty <= spec.difficulty_range[1]
         )
         return rng.choice(eligible or sorted(specs))
@@ -120,7 +121,12 @@ class Generator(ABC):
         return None
 
     def validate_answer(self, answer: str, meta: dict[str, Any]) -> None:
-        """Raise if the produced answer falls outside the range the task promises."""
+        """Raise if the produced answer falls outside the range the task promises.
+
+        The default accepts anything: most generators bound their answer by
+        construction, and only the ones that cannot need to override this.
+        """
+        return
 
     # -- helpers ------------------------------------------------------------
     def target_seconds_for(self, subtype: str, difficulty: int) -> int:

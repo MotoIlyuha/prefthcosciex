@@ -21,9 +21,7 @@ def _random_formula(rng: Rng, depth: int) -> Node:
         return var(rng.choice(NAMES))
     if rng.chance(0.2):
         return not_(_random_formula(rng, depth - 1))
-    return binary(
-        rng.choice(OPS), _random_formula(rng, depth - 1), _random_formula(rng, depth - 1)
-    )
+    return binary(rng.choice(OPS), _random_formula(rng, depth - 1), _random_formula(rng, depth - 1))
 
 
 def test_python_rendering_matches_ast_evaluation() -> None:
@@ -31,7 +29,7 @@ def test_python_rendering_matches_ast_evaluation() -> None:
         rng = Rng(seed)
         formula = _random_formula(rng, 3)
         source = formula.to_python()
-        compiled = eval(f"lambda x, y, z, w: {source}")  # noqa: S307 - our own source
+        compiled = eval(f"lambda x, y, z, w: {source}")
         for combo in product([False, True], repeat=4):
             env = dict(zip(NAMES, combo, strict=True))
             assert formula.evaluate(env) == compiled(**env), (

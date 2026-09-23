@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Sequence
+from typing import cast
 from dataclasses import dataclass, field
 
 from egegen.checkers import check
 from egegen.core.generator import Generator
-from egegen.core.types import Instance, Uniqueness
+from egegen.core.types import AnswerKind, Instance, Uniqueness
 
 PLACEHOLDER = re.compile(r"\{[a-zA-Z_][a-zA-Z0-9_]*\}")
 """Leftover ``{name}`` in a statement means a template was rendered with a gap."""
@@ -58,7 +59,7 @@ def check_instance(
 
     try:
         instance, gen_ms = gen.timed_generate(seed, difficulty, subtype)
-    except Exception as exc:  # noqa: BLE001 - any failure is a test failure
+    except Exception as exc:
         report.failures.append(f"generate raised {type(exc).__name__}: {exc}")
         return report
     report.gen_ms = gen_ms
@@ -117,9 +118,8 @@ def _check_statement(instance: Instance, report: CheckReport) -> None:
 
 
 def _check_answer_format(instance: Instance, report: CheckReport) -> None:
-    result = check(
-        instance.answer_kind, instance.answer, instance.answer, instance.checker_options
-    )
+    kind = cast("AnswerKind", instance.answer_kind)
+    result = check(kind, instance.answer, instance.answer, instance.checker_options)
     if not result.correct:
         report.failures.append(
             f"answer {instance.answer!r} does not validate as {instance.answer_kind}: "
@@ -130,14 +130,14 @@ def _check_answer_format(instance: Instance, report: CheckReport) -> None:
 def _check_solvers(gen: Generator, instance: Instance, report: CheckReport) -> None:
     try:
         fast = gen.solve_fast(instance.meta)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         report.failures.append(f"solve_fast raised {type(exc).__name__}: {exc}")
         return
     if fast != instance.answer:
         report.failures.append(f"solve_fast {fast!r} != instance answer {instance.answer!r}")
     try:
         naive = gen.solve_naive(instance.meta)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         report.failures.append(f"solve_naive raised {type(exc).__name__}: {exc}")
         return
     if naive is not None and naive != instance.answer:
@@ -148,7 +148,7 @@ def _check_solvers(gen: Generator, instance: Instance, report: CheckReport) -> N
         )
     try:
         gen.validate_answer(instance.answer, instance.meta)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         report.failures.append(f"validate_answer rejected {instance.answer!r}: {exc}")
 
 

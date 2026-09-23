@@ -65,10 +65,7 @@ class Node:
             inner = self.left.to_text(top=False)
             return f"¬{inner}" if self.left.op == "var" else f"¬({inner})"
         assert self.left is not None and self.right is not None
-        text = (
-            f"{self.left.to_text(top=False)} {SYMBOL[self.op]} "
-            f"{self.right.to_text(top=False)}"
-        )
+        text = f"{self.left.to_text(top=False)} {SYMBOL[self.op]} {self.right.to_text(top=False)}"
         return text if top else f"({text})"
 
     def to_python(self, top: bool = True) -> str:
@@ -103,9 +100,7 @@ def binary(op: str, left: Node, right: Node) -> Node:
     return Node(op, left, right)
 
 
-def satisfying_sets(
-    formula: Node, variables: Sequence[str], value: bool
-) -> list[tuple[int, ...]]:
+def satisfying_sets(formula: Node, variables: Sequence[str], value: bool) -> list[tuple[int, ...]]:
     """All variable assignments where the formula equals ``value``."""
     out: list[tuple[int, ...]] = []
     for combo in product([0, 1], repeat=len(variables)):
@@ -131,9 +126,7 @@ def column_orders(
     different values per row). Distinct rows must map to distinct assignments: a truth
     table never lists the same variable assignment twice.
     """
-    by_value = {
-        value: satisfying_sets(formula, variables, value) for value in set(values)
-    }
+    by_value = {value: satisfying_sets(formula, variables, value) for value in set(values)}
     return column_orders_with_pools(by_value, variables, rows, values)
 
 

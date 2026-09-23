@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -42,7 +42,7 @@ class Task02(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t02/{subtype}: no instance with a unique column order")
+        raise GenerationFailedError(f"t02/{subtype}: no instance with a unique column order")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         n_vars = 3 if subtype == "2.3_three_vars" else 4
@@ -59,9 +59,7 @@ class Task02(Generator):
         n_rows = 3 if difficulty <= 3 else 4
         mixed = subtype == "2.5_mixed_values"
         value = subtype != "2.4_value_one"  # 2.4 pins F = 1, others use F = 0
-        values = (
-            [rng.chance(0.5) for _ in range(n_rows)] if mixed else [value] * n_rows
-        )
+        values = [rng.chance(0.5) for _ in range(n_rows)] if mixed else [value] * n_rows
 
         # Rather than draw rows at random and hope the column order is pinned down,
         # build the table greedily: at each step add the row that rules out the most
@@ -80,9 +78,7 @@ class Task02(Generator):
         # back to a fully filled one rather than discarding a perfectly good formula.
         built = None
         for plan in (blank_plan, {}):
-            built = self._build_table(
-                rng, pools, variables, perm, answer, values, n_rows, plan
-            )
+            built = self._build_table(rng, pools, variables, perm, answer, values, n_rows, plan)
             if built is not None:
                 break
         if built is None:
@@ -101,7 +97,7 @@ class Task02(Generator):
         }
         table = markdown_table(
             [f"Перем. {j + 1}" for j in range(n_vars)] + ["F"],
-            [list(row) + [int(v)] for row, v in zip(rows, values, strict=True)],
+            [[*row, int(v)] for row, v in zip(rows, values, strict=True)],
         )
         template = self.templates.pick(rng, subtype)
         return Instance(
@@ -152,7 +148,7 @@ class Task02(Generator):
             best: tuple[int, list[int | None], tuple[int, ...]] | None = None
             # Eight candidates is plenty to find a row that cuts the survivor set;
             # scanning the whole pool at every step would dominate generation time.
-            for candidate_set in (pool if len(pool) <= 8 else rng.sample(pool, 8)):
+            for candidate_set in pool if len(pool) <= 8 else rng.sample(pool, 8):
                 row: list[int | None] = [candidate_set[perm[j]] for j in range(n_vars)]
                 for column in blank_plan.get(step, ()):
                     row[column] = None
@@ -204,9 +200,7 @@ class Task02(Generator):
         }
         for i in range(n):
             for j in range(i + 1, n):
-                if all(
-                    table[combo] == table[_swap(combo, i, j)] for combo in table
-                ):
+                if all(table[combo] == table[_swap(combo, i, j)] for combo in table):
                     return True
         return False
 
@@ -242,7 +236,7 @@ class Task02(Generator):
             [bool(v) for v in meta["values"]],
         )
         if len(orders) != 1:
-            raise GenerationFailed(f"t02: column order is not unique: {orders}")
+            raise GenerationFailedError(f"t02: column order is not unique: {orders}")
         return orders[0]
 
     def solve_naive(self, meta: dict[str, Any]) -> str | None:
@@ -290,9 +284,7 @@ class Task02(Generator):
 
             return place(0)
 
-        found = [
-            "".join(variables[i] for i in p) for p in permutations(range(n)) if fits(p)
-        ]
+        found = ["".join(variables[i] for i in p) for p in permutations(range(n)) if fits(p)]
         return found[0] if len(found) == 1 else None
 
     def enumerate_answers(self, meta: dict[str, Any]) -> list[str] | None:

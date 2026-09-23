@@ -11,6 +11,7 @@ from typing import Annotated
 
 import typer
 
+from egegen.core.generator import Generator
 from egegen.core.registry import get_generator, list_generators
 from egegen.testing import check_instance, sweep
 
@@ -66,9 +67,8 @@ def gen(
         raise typer.Exit(1)
 
 
-def _pick(generator: object, i: int) -> str:
-    subtypes = generator.subtypes  # type: ignore[attr-defined]
-    return subtypes[i % len(subtypes)]
+def _pick(generator: Generator, i: int) -> str:
+    return generator.subtypes[i % len(generator.subtypes)]
 
 
 @app.command()
@@ -126,7 +126,7 @@ def selfcheck() -> None:
     from egegen.solvers.games import GameAnalyzer, one_pile_moves
 
     n = 129
-    game = GameAnalyzer(one_pile_moves([1], [2]), lambda s: s >= n)
+    game = GameAnalyzer(one_pile_moves([1], [2]), lambda s: int(s) >= n)  # type: ignore[arg-type]
     got = {
         "19": [s for s in range(1, n) if game.L1(s)],
         "20": [s for s in range(1, n) if game.W2(s)],
@@ -137,7 +137,10 @@ def selfcheck() -> None:
     if got != want:
         typer.secho(f"расхождение с дизайн-доком: ожидалось {want}", fg=typer.colors.RED)
         raise typer.Exit(1)
-    typer.secho("Игры N=129 (+1, x2): 19 → 64; 20 → 32, 63; 21 → 62 — совпадает", fg=typer.colors.GREEN)
+    typer.secho(
+        "Игры N=129 (+1, x2): 19 → 64; 20 → 32, 63; 21 → 62 — совпадает",
+        fg=typer.colors.GREEN,
+    )
 
 
 def main() -> None:

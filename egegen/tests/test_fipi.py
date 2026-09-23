@@ -33,7 +33,9 @@ def test_config_loads_and_validates() -> None:
 
 
 def test_rejects_unknown_keys() -> None:
-    with pytest.raises(Exception):
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
         FipiConfig.model_validate({"version": "x", "source_note": "y", "banner_ru": "z", "oops": 1})
 
 

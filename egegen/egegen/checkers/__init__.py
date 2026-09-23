@@ -65,20 +65,16 @@ def check_two_ints(raw: str, expected: str, options: dict[str, Any] | None = Non
     opts = options or {}
     parts = [p for p in _SEPARATORS.split(raw.strip()) if p]
     if len(parts) != 2 or not all(re.fullmatch(r"[+-]?\d+", p) for p in parts):
-        return CheckResult(
-            False, " ".join(parts), "Ожидаются два целых числа через пробел."
-        )
+        return CheckResult(False, " ".join(parts), "Ожидаются два целых числа через пробел.")
     got = [int(p) for p in parts]
     exp = [int(p) for p in _SEPARATORS.split(expected.strip()) if p]
-    if opts.get("unordered"):
-        ok = sorted(got) == sorted(exp)
-    else:
-        ok = got == exp
+    ok = sorted(got) == sorted(exp) if opts.get("unordered") else got == exp
     return CheckResult(ok, " ".join(str(v) for v in got))
 
 
 def check_pairs_list(raw: str, expected: str, options: dict[str, Any] | None = None) -> CheckResult:
     """A list of pairs like ``12 30, 15 22``. Pair order is free, order inside a pair is not."""
+
     def parse(text: str) -> list[tuple[int, int]] | None:
         chunks = [c.strip() for c in text.replace(";", ",").split(",") if c.strip()]
         pairs: list[tuple[int, int]] = []

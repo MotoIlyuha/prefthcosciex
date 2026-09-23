@@ -9,7 +9,7 @@ from __future__ import annotations
 from itertools import product
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -31,20 +31,14 @@ def _prefix_free(codes: list[str]) -> bool:
 
 def _suffix_free(codes: list[str]) -> bool:
     return all(
-        not (a.endswith(b) or b.endswith(a))
-        for i, a in enumerate(codes)
-        for b in codes[i + 1 :]
+        not (a.endswith(b) or b.endswith(a)) for i, a in enumerate(codes) for b in codes[i + 1 :]
     )
 
 
 def _free_words(fixed: list[str], length: int, *, suffix: bool) -> list[str]:
     """All words of exactly ``length`` that keep the code Fano-valid."""
     test = _suffix_free if suffix else _prefix_free
-    return [
-        "".join(bits)
-        for bits in product("01", repeat=length)
-        if test([*fixed, "".join(bits)])
-    ]
+    return ["".join(bits) for bits in product("01", repeat=length) if test([*fixed, "".join(bits)])]
 
 
 class Task04(Generator):
@@ -60,7 +54,7 @@ class Task04(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t04/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t04/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         suffix = subtype == "4.2_reverse_fano"
@@ -111,7 +105,7 @@ class Task04(Generator):
 
         try:
             answer = self.solve_fast(meta)
-        except GenerationFailed:
+        except GenerationFailedError:
             # The random code saturated the trie: no room for another word. Retry.
             return None
         if not self._plausible(subtype, answer):
@@ -249,14 +243,14 @@ class Task04(Generator):
         view = [c[::-1] for c in codes] if suffix else codes
         roots = self._free_roots(view)
         if not roots:
-            raise GenerationFailed("t04: trie is full")
+            raise GenerationFailedError("t04: trie is full")
         length = min(len(r) for r in roots) or 1
         for candidate_len in range(length, MAX_LEN + 1):
             nodes = self._free_nodes_at(view, candidate_len)
             if nodes:
                 words = [n[::-1] for n in nodes] if suffix else nodes
                 return min(words, key=lambda w: int(w, 2))
-        raise GenerationFailed("t04: trie is full")
+        raise GenerationFailedError("t04: trie is full")
 
     def _min_total_lengths(self, codes: list[str], extra: int, *, suffix: bool) -> int:
         """Smallest total length of ``extra`` new code words.
@@ -270,7 +264,7 @@ class Task04(Generator):
         view = [c[::-1] for c in codes] if suffix else codes
         roots = [len(r) for r in self._free_roots(view)]
         if not roots:
-            raise GenerationFailed("t04: trie is full")
+            raise GenerationFailedError("t04: trie is full")
         best: int | None = None
         for lengths in self._length_multisets(extra, MAX_LEN):
             total = sum(lengths)
@@ -279,15 +273,13 @@ class Task04(Generator):
             if self._packs(sorted(lengths), list(roots)):
                 best = total
         if best is None:
-            raise GenerationFailed("t04: cannot place the requested code words")
+            raise GenerationFailedError("t04: cannot place the requested code words")
         return best
 
     def _length_multisets(self, count: int, max_len: int) -> list[tuple[int, ...]]:
         from itertools import combinations_with_replacement
 
-        return sorted(
-            combinations_with_replacement(range(1, max_len + 1), count), key=sum
-        )
+        return sorted(combinations_with_replacement(range(1, max_len + 1), count), key=sum)
 
     def _packs(self, lengths: list[int], roots: list[int]) -> bool:
         """Best-fit packing of ``lengths`` into free subtrees of the given depths."""
@@ -314,7 +306,7 @@ class Task04(Generator):
                 out.append(lookup[buffer])
                 buffer = ""
         if buffer:
-            raise GenerationFailed("t04: encoded string does not decode cleanly")
+            raise GenerationFailedError("t04: encoded string does not decode cleanly")
         return "".join(out)
 
     def _count_free_formula(self, codes: list[str], k: int, *, suffix: bool) -> int:
@@ -393,7 +385,9 @@ class Task04(Generator):
 
     # -- explanation --------------------------------------------------------
     def _solution(self, meta: dict[str, Any], answer: str) -> list[str]:
-        codes = ", ".join(f"{a} — `{b}`" for a, b in zip(meta["letters"], meta["codes"], strict=True))
+        codes = ", ".join(
+            f"{a} — `{b}`" for a, b in zip(meta["letters"], meta["codes"], strict=True)
+        )
         head = (
             "**Шаг 1.** Нарисуйте двоичное дерево и отметьте занятые вершины. "
             "Каждое кодовое слово занимает не только свою вершину, но и всё "

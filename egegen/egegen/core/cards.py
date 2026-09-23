@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 from egegen.core.errors import ConfigError
@@ -25,7 +25,7 @@ class MethodCard:
     body_md: str
 
 
-@lru_cache(maxsize=None)
+@cache
 def load_cards(task_no: int) -> dict[str, MethodCard]:
     path = CARDS_DIR / f"t{task_no:02d}.md"
     if not path.exists():

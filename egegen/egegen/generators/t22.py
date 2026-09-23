@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -35,7 +35,7 @@ class Task22(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t22/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t22/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         count = 8 + difficulty + rng.randint(0, 3)
@@ -123,9 +123,7 @@ class Task22(Generator):
         def finish(pid: int) -> int:
             if pid not in cache:
                 process = by_id[pid]
-                cache[pid] = process["time"] + max(
-                    (finish(d) for d in process["deps"]), default=0
-                )
+                cache[pid] = process["time"] + max((finish(d) for d in process["deps"]), default=0)
             return cache[pid]
 
         return {p["id"]: finish(p["id"]) for p in processes}
@@ -190,9 +188,7 @@ class Task22(Generator):
                     (
                         pid
                         for pid in pending
-                        if all(
-                            d in finish and finish[d] <= now for d in by_id[pid]["deps"]
-                        )
+                        if all(d in finish and finish[d] <= now for d in by_id[pid]["deps"])
                     ),
                     None,
                 )

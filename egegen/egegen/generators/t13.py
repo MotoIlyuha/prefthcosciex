@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.fipi import load_fipi_config
 from egegen.core.generator import Generator
 from egegen.core.registry import register
@@ -40,7 +40,7 @@ class Task13(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t13/{subtype}: no instance in the configured answer range")
+        raise GenerationFailedError(f"t13/{subtype}: no instance in the configured answer range")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         cfg = load_fipi_config().t13
@@ -130,11 +130,11 @@ class Task13(Generator):
         )
 
     def _pick_target(
-        self, rng: Rng, a: int, commands: list[str], cfg: Any, difficulty: int  # noqa: ANN401
+        self, rng: Rng, a: int, commands: list[str], cfg: Any, difficulty: int
     ) -> int | None:
         """Smallest-to-largest sweep for a B whose program count sits in the band."""
         if not is_monotone(commands):
-            return min(cfg.max_b, a + 10 + difficulty * 4)
+            return int(min(cfg.max_b, a + 10 + difficulty * 4))
         band_lo = max(cfg.answer_min * 4, 12)
         band_hi = cfg.answer_max
         usable = [
@@ -149,9 +149,7 @@ class Task13(Generator):
         window = usable[min((difficulty - 1) * span, len(usable) - 1) :][:span]
         return rng.choice(window or usable)
 
-    def _pick_length(
-        self, meta: dict[str, Any], cfg: Any, difficulty: int  # noqa: ANN401
-    ) -> int | None:
+    def _pick_length(self, meta: dict[str, Any], cfg: Any, difficulty: int) -> int | None:
         """Shortest length bound whose program count is inside the configured band."""
         usable: list[int] = []
         for length in range(3, 20):
@@ -184,9 +182,7 @@ class Task13(Generator):
         return (c, d) if c < d else None
 
     def _describe_commands(self, commands: list[str]) -> str:
-        return "; ".join(
-            f"{i + 1}. {command_label(cmd)}" for i, cmd in enumerate(commands)
-        )
+        return "; ".join(f"{i + 1}. {command_label(cmd)}" for i, cmd in enumerate(commands))
 
     # -- solving ------------------------------------------------------------
     def solve_fast(self, meta: dict[str, Any]) -> str:
@@ -295,9 +291,7 @@ class Task13(Generator):
                 return head + f"print(f({a}, {b}) - f({a}, {c}) * f({c}, {b}))\n"
             case "through_not":
                 c, d = meta["c"], meta["d"]
-                return head + (
-                    f"print(f({a}, {c}) * (f({c}, {b}) - f({c}, {d}) * f({d}, {b})))\n"
-                )
+                return head + (f"print(f({a}, {c}) * (f({c}, {b}) - f({c}, {d}) * f({d}, {b})))\n")
             case "bounded":
                 return (
                     "from functools import lru_cache\n\n@lru_cache(None)\n"
@@ -305,7 +299,9 @@ class Task13(Generator):
                     f"    here = 1 if a == {b} else 0\n"
                     "    if steps == 0: return here\n"
                     "    total = here\n"
-                    f"    for nxt in ({', '.join(e.replace('f(', '').replace(', b)', '') for e in exprs)}):\n"
+                    "    for nxt in ("
+                    + ", ".join(e.replace("f(", "").replace(", b)", "") for e in exprs)
+                    + "):\n"
                     f"        if {meta['lo']} <= nxt <= {meta['hi']}:\n"
                     "            total += f(nxt, steps - 1)\n"
                     "    return total\n\n"

@@ -33,8 +33,13 @@ class Walls:
         return (i - 1, j) in self.down
 
     def svg_segments(self) -> list[tuple[int, int, str]]:
+        """Wall segments for :func:`egegen.core.svg.grid_svg`.
+
+        The movement model calls the lower wall "down" (the direction it blocks);
+        the drawing calls it "bottom" (the side of the cell it sits on).
+        """
         return [(i, j, "right") for i, j in sorted(self.right)] + [
-            (i, j, "down") for i, j in sorted(self.down)
+            (i, j, "bottom") for i, j in sorted(self.down)
         ]
 
 
@@ -87,7 +92,5 @@ def _blocked(i: int, j: int, move: str, walls: Walls) -> bool:
     raise ValueError(f"unknown move {move!r}")
 
 
-def walls_from_pairs(
-    right: Iterable[Sequence[int]], down: Iterable[Sequence[int]]
-) -> Walls:
+def walls_from_pairs(right: Iterable[Sequence[int]], down: Iterable[Sequence[int]]) -> Walls:
     return Walls({(int(a), int(b)) for a, b in right}, {(int(a), int(b)) for a, b in down})

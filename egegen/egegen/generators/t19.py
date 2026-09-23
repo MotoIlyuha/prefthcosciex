@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
 from egegen.core.templates import render
-from egegen.core.types import Instance, Uniqueness
+from egegen.core.types import AnswerKind, Instance, Uniqueness
 from egegen.generators._games import (
     describe_end,
     describe_moves,
@@ -22,8 +22,8 @@ from egegen.generators._games import (
 
 class Task19(Generator):
     task_no = 19
-    answer_kind = "int"
-    checker = "exact"
+    answer_kind: AnswerKind = "int"
+    checker: str = "exact"
     uniqueness = Uniqueness.ENUMERATED
     generation_budget_ms = 400
 
@@ -38,7 +38,7 @@ class Task19(Generator):
             candidate = self._attempt(rng, difficulty, subtype, spec)
             if candidate is not None:
                 return candidate
-        raise GenerationFailed(f"t{self.task_no}/{subtype}: no game with the required shape")
+        raise GenerationFailedError(f"t{self.task_no}/{subtype}: no game with the required shape")
 
     def _attempt(
         self, rng: Rng, difficulty: int, subtype: str, spec: dict[str, Any]
@@ -126,9 +126,7 @@ class Task19(Generator):
             moves = (
                 "def moves(s):\n"
                 "    return ["
-                + ", ".join(
-                    [f"s + {k}" for k in spec["adds"]] + [f"s * {k}" for k in spec["muls"]]
-                )
+                + ", ".join([f"s + {k}" for k in spec["adds"]] + [f"s * {k}" for k in spec["muls"]])
                 + "]\n"
                 f"def over(s): return s >= {target}\n"
                 f"states = list(range(1, {target}))\n"
@@ -144,7 +142,8 @@ class Task19(Generator):
             "@lru_cache(None)\ndef W2(s): return not W1(s) and any(L1(m) for m in moves(s))\n"
             "@lru_cache(None)\ndef L2(s):\n"
             "    ms = moves(s)\n"
-            "    return bool(ms) and not W1(s) and not L1(s) and all(W1(m) or W2(m) for m in ms)\n\n"
+            "    return (bool(ms) and not W1(s) and not L1(s)\n"
+            "            and all(W1(m) or W2(m) for m in ms))\n\n"
             f"print(sorted(value(s) for s in states if {meta['predicate']}(s)))\n"
         )
 

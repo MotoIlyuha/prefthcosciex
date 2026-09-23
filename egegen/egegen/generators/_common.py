@@ -9,7 +9,8 @@ from egegen.core.rng import Rng
 VERTEX_LETTERS = "АБВГДЕЖЗИКЛМНП"
 """Russian letters used for graph vertices, matching exam convention (no Й, О, Р…)."""
 
-LATIN_VERTEX_LETTERS = "ABCDEFGHIJKLMNOP"
+LATIN_VERTEX_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+"""Latin letters for graph vertices; 26 of them caps the largest graph size."""
 
 
 def markdown_table(

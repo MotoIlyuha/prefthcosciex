@@ -11,15 +11,12 @@ from __future__ import annotations
 import sys
 import threading
 from collections.abc import Callable
-from typing import TypeVar
-
-T = TypeVar("T")
 
 STACK_BYTES = 64 * 1024 * 1024
 RECURSION_LIMIT = 200_000
 
 
-def run_deep(fn: Callable[[], T]) -> T:
+def run_deep[T](fn: Callable[[], T]) -> T:
     """Call ``fn`` on a thread with a 64 MB stack and a raised recursion limit."""
     previous_limit = sys.getrecursionlimit()
     previous_stack = threading.stack_size()
@@ -29,7 +26,7 @@ def run_deep(fn: Callable[[], T]) -> T:
     def target() -> None:
         try:
             result.append(fn())
-        except BaseException as exc:  # noqa: BLE001 - re-raised on the calling thread
+        except BaseException as exc:
             error.append(exc)
 
     sys.setrecursionlimit(RECURSION_LIMIT)

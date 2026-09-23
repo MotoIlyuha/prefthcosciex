@@ -29,7 +29,7 @@ _NS = (
 )
 _MANIFEST = (
     '<?xml version="1.0" encoding="UTF-8"?>\n'
-    '<manifest:manifest '
+    "<manifest:manifest "
     'xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" '
     'manifest:version="1.3">'
     '<manifest:file-entry manifest:full-path="/" '
@@ -88,8 +88,9 @@ def to_ods_multi(sheets: dict[str, Sequence[Sequence[Cell]]]) -> bytes:
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
         # The mimetype entry must come first and be stored uncompressed.
-        _write(archive, "mimetype", b"application/vnd.oasis.opendocument.spreadsheet",
-               compress=False)
+        _write(
+            archive, "mimetype", b"application/vnd.oasis.opendocument.spreadsheet", compress=False
+        )
         _write(archive, "META-INF/manifest.xml", _MANIFEST.encode("utf-8"))
         _write(archive, "styles.xml", _STYLES.encode("utf-8"))
         _write(archive, "content.xml", content.encode("utf-8"))
@@ -112,8 +113,7 @@ def _cell(value: Cell) -> str:
         )
     text = escape(str(value))
     return (
-        '<table:table-cell office:value-type="string">'
-        f"<text:p>{text}</text:p></table:table-cell>"
+        f'<table:table-cell office:value-type="string"><text:p>{text}</text:p></table:table-cell>'
     )
 
 

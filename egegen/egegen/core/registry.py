@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from egegen.core.errors import GeneratorNotFound
+from egegen.core.errors import GeneratorNotFoundError
 
 if TYPE_CHECKING:
     from egegen.core.generator import Generator
@@ -25,7 +25,7 @@ def get_generator(task_no: int) -> Generator:
     try:
         return registry[task_no]
     except KeyError as exc:
-        raise GeneratorNotFound(f"no generator for task type {task_no}") from exc
+        raise GeneratorNotFoundError(f"no generator for task type {task_no}") from exc
 
 
 def list_generators() -> list[Generator]:

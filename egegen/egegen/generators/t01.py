@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -21,6 +21,7 @@ from egegen.generators._common import VERTEX_LETTERS, markdown_table
 from egegen.solvers.graphs import dijkstra, matchings
 
 MAX_ATTEMPTS = 60
+
 
 class Task01(Generator):
     task_no = 1
@@ -35,7 +36,9 @@ class Task01(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t01/{subtype}: no well-posed instance after {MAX_ATTEMPTS} tries")
+        raise GenerationFailedError(
+            f"t01/{subtype}: no well-posed instance after {MAX_ATTEMPTS} tries"
+        )
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         n = 6 if difficulty <= 2 else (7 if difficulty <= 4 else 8)
@@ -88,7 +91,6 @@ class Task01(Generator):
             seed=0,
             statement_md=body.replace("{{FIGURE}}", "![Схема дорог](asset:schema.svg)"),
             answer=answer,
-
             solution_steps=self._solution(meta, answer, labels),
             method_card_id="",
             target_seconds=0,
@@ -141,9 +143,7 @@ class Task01(Generator):
                 (a, b), (c, d) = rng.sample(edges, 2)
                 return {
                     "meta": {"question": "two_edges", "pair": [a, b], "pair2": [c, d]},
-                    "fields": {
-                        "a": labels[a], "b": labels[b], "c": labels[c], "d": labels[d]
-                    },
+                    "fields": {"a": labels[a], "b": labels[b], "c": labels[c], "d": labels[d]},
                 }
             case "1.3_shortest_path":
                 if not non_edges:
@@ -184,8 +184,7 @@ class Task01(Generator):
                 a, b = meta["pair"]
                 n = meta["n"]
                 graph = {
-                    str(i): {str(j): table[i][j] for j in range(n) if table[i][j]}
-                    for i in range(n)
+                    str(i): {str(j): table[i][j] for j in range(n) if table[i][j]} for i in range(n)
                 }
                 return str(int(dijkstra(graph, str(sigma[a]))[str(sigma[b])]))
             case "row":
@@ -196,7 +195,7 @@ class Task01(Generator):
         """Match via degree-signature-pruned backtracking, then read the table."""
         for sigma in matchings(meta["figure"], meta["table"]):
             return self._answer_for(meta, sigma)
-        raise GenerationFailed("t01: no matching between figure and table")
+        raise GenerationFailedError("t01: no matching between figure and table")
 
     def solve_naive(self, meta: dict[str, Any]) -> str | None:
         """Sweep all n! relabelings and keep the consistent ones — no pruning at all."""
@@ -272,5 +271,6 @@ class Task01(Generator):
                     f"**П{answer}** — это и есть ответ."
                 )
         return steps
+
 
 register(Task01())

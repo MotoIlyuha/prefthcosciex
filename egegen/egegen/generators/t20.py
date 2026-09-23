@@ -9,12 +9,13 @@ from __future__ import annotations
 from typing import Any
 
 from egegen.core.registry import register
+from egegen.core.types import AnswerKind
 from egegen.generators.t19 import Task19
 
 
 class Task20(Task19):
     task_no = 20
-    answer_kind = "two_ints"
+    answer_kind: AnswerKind = "two_ints"
     checker = "int_pair_ordered"
     predicate = "W2"
 

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from typing import TypeAlias
 
-Pt: TypeAlias = tuple[float, float]
+type Pt = tuple[float, float]
 EPS = 1e-9
 
 
@@ -99,3 +98,66 @@ def polygon_area(poly: Sequence[Pt]) -> float:
         )
         / 2
     )
+
+
+def winding_inside(
+    px: float, py: float, poly: Sequence[Pt], *, strict: bool, eps: float = EPS
+) -> bool:
+    """Point-in-polygon by winding number — the independent check on ray casting.
+
+    Ray casting counts crossings and winding counts turns; they agree on simple
+    polygons and disagree the moment one of them mishandles a vertex or an edge.
+    """
+    n = len(poly)
+    for i in range(n):
+        if point_on_edge(px, py, poly[i], poly[(i + 1) % n], eps):
+            return not strict
+    winding = 0
+    for i in range(n):
+        (x1, y1), (x2, y2) = poly[i], poly[(i + 1) % n]
+        side = (x2 - x1) * (py - y1) - (px - x1) * (y2 - y1)
+        if y1 <= py:
+            if y2 > py and side > 0:
+                winding += 1
+        elif y2 <= py and side < 0:
+            winding -= 1
+    return winding != 0
+
+
+def count_lattice_points_winding(poly: Sequence[Pt], *, strict: bool) -> int:
+    xs = [p[0] for p in poly]
+    ys = [p[1] for p in poly]
+    return sum(
+        winding_inside(x, y, poly, strict=strict)
+        for x in range(math.floor(min(xs)) - 1, math.ceil(max(xs)) + 2)
+        for y in range(math.floor(min(ys)) - 1, math.ceil(max(ys)) + 2)
+    )
+
+
+def boundary_lattice_points(poly: Sequence[Pt]) -> int | None:
+    """Lattice points on the outline, or ``None`` when a vertex is not integral."""
+    total = 0
+    n = len(poly)
+    for i in range(n):
+        (x1, y1), (x2, y2) = poly[i], poly[(i + 1) % n]
+        for value in (x1, y1, x2, y2):
+            if abs(value - round(value)) > 1e-9:
+                return None
+        total += math.gcd(abs(round(x2) - round(x1)), abs(round(y2) - round(y1)))
+    return total
+
+
+def pick_interior(poly: Sequence[Pt]) -> int | None:
+    """Interior lattice points via Pick's theorem: ``I = A - B/2 + 1``.
+
+    Exact and completely independent of any scan, but only valid when every vertex
+    has integer coordinates — which is why it returns ``None`` otherwise.
+    """
+    boundary = boundary_lattice_points(poly)
+    if boundary is None:
+        return None
+    area = polygon_area(poly)
+    interior = area - boundary / 2 + 1
+    if abs(interior - round(interior)) > 1e-9:
+        return None
+    return round(interior)

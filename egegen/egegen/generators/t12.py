@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -33,7 +33,7 @@ class Task12(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t12/{subtype}: no terminating rule set")
+        raise GenerationFailedError(f"t12/{subtype}: no terminating rule set")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         symbols = "123" if difficulty <= 3 and subtype != "12.3_three_rules" else "1234"
@@ -155,8 +155,7 @@ class Task12(Generator):
 
     def _describe_rules(self, rules: list[tuple[str, str]]) -> str:
         return "\n".join(
-            f"    ЕСЛИ нашлось ({a}) ТО заменить ({a}, {b}) КОНЕЦ ЕСЛИ"
-            for a, b in rules
+            f"    ЕСЛИ нашлось ({a}) ТО заменить ({a}, {b}) КОНЕЦ ЕСЛИ" for a, b in rules
         )
 
     def _describe_condition(self, rules: list[tuple[str, str]]) -> str:
@@ -220,7 +219,7 @@ class Task12(Generator):
         target: int = meta["target_metric"]
         out: list[int] = []
         for n in range(3, 61):
-            result = self._run_replace(head * n + tail * n, rules)  # type: ignore[arg-type]
+            result = self._run_replace(head * n + tail * n, rules)
             if result is not None and len(result) == target:
                 out.append(n)
         return out
@@ -231,7 +230,7 @@ class Task12(Generator):
         if meta["question"] == "reverse":
             hits = self._reverse_candidates(meta)
             return str(hits[0]) if len(hits) == 1 else ""
-        result = self._run_replace(meta["start"], rules)  # type: ignore[arg-type]
+        result = self._run_replace(meta["start"], rules)
         if result is None:
             return ""
         return str(self._metric(result, meta["question"], meta))
@@ -240,7 +239,7 @@ class Task12(Generator):
         rules = [tuple(r) for r in meta["rules"]]
         if meta["question"] == "reverse":
             return None
-        result = self._run_manual(meta["start"], rules)  # type: ignore[arg-type]
+        result = self._run_manual(meta["start"], rules)
         if result is None:
             return None
         return str(self._metric(result, meta["question"], meta))
@@ -257,9 +256,7 @@ class Task12(Generator):
     # -- explanation --------------------------------------------------------
     def _solution(self, meta: dict[str, Any], answer: str) -> list[str]:
         rules = meta["rules"]
-        body = "\n".join(
-            f"    if '{a}' in s: s = s.replace('{a}', '{b}', 1)" for a, b in rules
-        )
+        body = "\n".join(f"    if '{a}' in s: s = s.replace('{a}', '{b}', 1)" for a, b in rules)
         condition = " or ".join(f"'{a}' in s" for a, _ in rules)
         metric_line = {
             "digit_sum": "print(sum(map(int, s)))",

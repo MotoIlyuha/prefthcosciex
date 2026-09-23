@@ -159,10 +159,7 @@ def degree_signature(matrix: Sequence[Sequence[int]]) -> list[tuple[int, tuple[i
     """(degree, sorted neighbour degrees) per row — the manual method for task 1."""
     n = len(matrix)
     deg = [sum(1 for j in range(n) if matrix[i][j]) for i in range(n)]
-    return [
-        (deg[i], tuple(sorted(deg[j] for j in range(n) if matrix[i][j])))
-        for i in range(n)
-    ]
+    return [(deg[i], tuple(sorted(deg[j] for j in range(n) if matrix[i][j]))) for i in range(n)]
 
 
 def matchings(
@@ -189,9 +186,7 @@ def matchings(
         for j in range(n):
             if used[j] or sig_f[i] != sig_t[j]:
                 continue
-            if all(
-                bool(figure[i][k]) == bool(table[j][assignment[k]]) for k in range(i)
-            ):
+            if all(bool(figure[i][k]) == bool(table[j][assignment[k]]) for k in range(i)):
                 used[j] = True
                 assignment.append(j)
                 yield from backtrack()

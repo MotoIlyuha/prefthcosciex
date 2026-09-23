@@ -11,7 +11,7 @@ from __future__ import annotations
 import ipaddress
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.fipi import load_fipi_config
 from egegen.core.generator import Generator
 from egegen.core.registry import register
@@ -38,7 +38,7 @@ class Task10(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t10/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t10/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         cfg = load_fipi_config().t10
@@ -131,16 +131,14 @@ class Task10(Generator):
             if octets[0] == 127:
                 continue
             addr = ".".join(str(o) for o in octets)
-            return ipaddress.ip_network(f"{addr}/{prefix}", strict=False)
+            return ipaddress.IPv4Network(f"{addr}/{prefix}", strict=False)
 
     def _random_host(self, rng: Rng, network: ipaddress.IPv4Network) -> str:
         size = network.num_addresses
         offset = rng.randint(1, max(1, size - 2))
         return str(ipaddress.ip_address(int(network.network_address) + offset))
 
-    def _two_hosts(
-        self, rng: Rng, network: ipaddress.IPv4Network
-    ) -> tuple[str, str] | None:
+    def _two_hosts(self, rng: Rng, network: ipaddress.IPv4Network) -> tuple[str, str] | None:
         """Two hosts far enough apart that the mask is pinned down by them."""
         size = network.num_addresses
         if size < 8:
@@ -165,9 +163,7 @@ class Task10(Generator):
             case "count_with_ones":
                 net = ipaddress.ip_network(f"{meta['network']}/{meta['prefix']}", strict=False)
                 target = meta["ones"]
-                return str(
-                    sum(1 for addr in net if bin(int(addr)).count("1") == target)
-                )
+                return str(sum(1 for addr in net if bin(int(addr)).count("1") == target))
             case "mask_ones":
                 return str(self._longest_common_prefix_lib(meta["ip1"], meta["network"]))
             case "mask_byte":
@@ -228,7 +224,7 @@ class Task10(Generator):
                 return str(common_prefix(to_int(meta["ip1"]), to_int(meta["network"])))
             case "mask_byte":
                 k = common_prefix(to_int(meta["ip1"]), to_int(meta["ip2"]))
-                return to_text(mask_of(k)).split(".")[meta["byte_index"] - 1]
+                return to_text(mask_of(k)).split(".")[int(meta["byte_index"]) - 1]
         return None
 
     def _longest_common_prefix_lib(self, a: str, b: str) -> int:
@@ -294,8 +290,9 @@ class Task10(Generator):
                     "и берём первое k, при котором оба адреса попадают в одну сеть.",
                     f"**Шаг 2.** Подходит k = **{k}**, маска {net.netmask}. "
                     f"Адрес сети = адрес & маска = **{net.network_address}**.",
-                    f"**Шаг 3.** {transform_line}: {' + '.join(str(net.network_address).split('.'))}"
-                    f" = **{answer}**.\n\n```python\nimport ipaddress\n"
+                    f"**Шаг 3.** {transform_line}: "
+                    + " + ".join(str(net.network_address).split("."))
+                    + f" = **{answer}**.\n\n```python\nimport ipaddress\n"
                     f"ip1, ip2 = '{meta['ip1']}', '{meta['ip2']}'\n"
                     "for k in range(32, -1, -1):\n"
                     "    net = ipaddress.ip_network(f'{ip1}/{k}', strict=False)\n"

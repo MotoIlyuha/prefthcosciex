@@ -9,11 +9,11 @@ mismatch rather than as a wrong answer shipped to a student.
 
 from __future__ import annotations
 
-from functools import lru_cache
-from itertools import product
+from functools import cache
+from itertools import pairwise, product
 from typing import Any
 
-from egegen.core.errors import GenerationFailed
+from egegen.core.errors import GenerationFailedError
 from egegen.core.generator import Generator
 from egegen.core.registry import register
 from egegen.core.rng import Rng
@@ -37,7 +37,7 @@ class Task08(Generator):
             if candidate is not None:
                 return candidate
             rng = rng.fork("retry")
-        raise GenerationFailed(f"t08/{subtype}: no valid instance")
+        raise GenerationFailedError(f"t08/{subtype}: no valid instance")
 
     def _attempt(self, rng: Rng, difficulty: int, subtype: str) -> Instance | None:
         if subtype == "8.4_digits_base":
@@ -149,9 +149,7 @@ class Task08(Generator):
         for c in constraints:
             match c["kind"]:
                 case "max_count":
-                    lines.append(
-                        f"буква {c['letter']} встречается не более {c['k']} раз"
-                    )
+                    lines.append(f"буква {c['letter']} встречается не более {c['k']} раз")
                 case "min_count":
                     lines.append(f"буква {c['letter']} встречается не менее {c['k']} раз")
                 case "exact_count":
@@ -161,18 +159,12 @@ class Task08(Generator):
                 case "forbid_pair":
                     lines.append(f"сочетание «{c['a']}{c['b']}» не встречается")
                 case "starts_in":
-                    lines.append(
-                        "слово начинается с одной из букв " + ", ".join(c["set"])
-                    )
+                    lines.append("слово начинается с одной из букв " + ", ".join(c["set"]))
                 case "ends_in":
-                    lines.append(
-                        "слово заканчивается одной из букв " + ", ".join(c["set"])
-                    )
+                    lines.append("слово заканчивается одной из букв " + ", ".join(c["set"]))
                 case "no_adjacent_in":
                     lines.append(
-                        "никакие две буквы из набора "
-                        + ", ".join(c["set"])
-                        + " не стоят рядом"
+                        "никакие две буквы из набора " + ", ".join(c["set"]) + " не стоят рядом"
                     )
                 case "all_distinct":
                     lines.append("все буквы в слове различны")
@@ -199,7 +191,7 @@ class Task08(Generator):
                     if word.count(c["letter"]) != c["k"]:
                         return False
                 case "no_repeat_adjacent":
-                    if any(a == b for a, b in zip(word, word[1:], strict=False)):
+                    if any(a == b for a, b in pairwise(word)):
                         return False
                 case "forbid_pair":
                     if c["a"] + c["b"] in word:
@@ -211,10 +203,7 @@ class Task08(Generator):
                     if word[-1] not in c["set"]:
                         return False
                 case "no_adjacent_in":
-                    if any(
-                        a in c["set"] and b in c["set"]
-                        for a, b in zip(word, word[1:], strict=False)
-                    ):
+                    if any(a in c["set"] and b in c["set"] for a, b in pairwise(word)):
                         return False
                 case "all_distinct":
                     if len(set(word)) != len(word):
@@ -257,7 +246,7 @@ class Task08(Generator):
         tracked = [c for c in constraints if c["kind"].endswith("_count")]
         distinct = any(c["kind"] == "all_distinct" for c in constraints)
 
-        @lru_cache(maxsize=None)
+        @cache
         def walk(pos: int, last: int, counts: tuple[int, ...], used: int) -> int:
             if pos == length:
                 for c, seen in zip(tracked, counts, strict=True):
@@ -278,9 +267,7 @@ class Task08(Generator):
                 for idx, c in enumerate(tracked):
                     if c["letter"] == ch:
                         new_counts[idx] += 1
-                        if c["kind"] in ("max_count", "exact_count") and new_counts[
-                            idx
-                        ] > c["k"]:
+                        if c["kind"] in ("max_count", "exact_count") and new_counts[idx] > c["k"]:
                             blocked = True
                 if blocked:
                     continue
@@ -322,15 +309,15 @@ class Task08(Generator):
     def _closed_form(self, meta: dict[str, Any]) -> int | None:
         """Product formula for the restricted constraint set used by 8.5."""
         alphabet: str = meta["alphabet"]
-        k, length = len(alphabet), meta["length"]
+        k, length = len(alphabet), int(meta["length"])
         constraints = meta["constraints"]
         if len(constraints) != 1:
             return None
         c = constraints[0]
         if c["kind"] == "no_repeat_adjacent":
-            return k * (k - 1) ** (length - 1)
+            return int(k * (k - 1) ** (length - 1))
         if c["kind"] == "starts_in":
-            return len(c["set"]) * k ** (length - 1)
+            return int(len(c["set"]) * k ** (length - 1))
         return None
 
     def _word_index_positional(self, meta: dict[str, Any]) -> int:
@@ -358,9 +345,7 @@ class Task08(Generator):
         length = meta["length"]
         if meta["subtype"] == "8.2_word_number":
             word = meta["word"]
-            positions = ", ".join(
-                f"{ch} — {alphabet.index(ch)}" for ch in dict.fromkeys(word)
-            )
+            positions = ", ".join(f"{ch} — {alphabet.index(ch)}" for ch in dict.fromkeys(word))
             return [
                 f"**Шаг 1.** Порядок букв берём **из условия**: {', '.join(alphabet)} — "
                 "а не из настоящего алфавита.",
