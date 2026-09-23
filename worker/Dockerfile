@@ -1,6 +1,6 @@
 # Worker image: the API code base plus the ARQ entry point. Build from the repo root.
 FROM python:3.12-slim-bookworm
-COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /usr/local/bin/uv
+RUN pip install --no-cache-dir uv==0.8.17
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy PYTHONUNBUFFERED=1
 WORKDIR /srv
 COPY egegen ./egegen

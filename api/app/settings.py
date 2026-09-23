@@ -51,10 +51,30 @@ class Settings(BaseSettings):
     rate_limit_answers_per_min: int = 60
     rate_limit_runs_per_hour: int = 20
     rate_limit_default_per_min: int = 240
+    #: Sign-ins per minute from one IP (brute force of initData is pointless, but cheap).
+    rate_limit_auth_per_min: int = 30
 
     @property
     def admin_ids(self) -> set[int]:
         return {int(x) for x in self.admin_telegram_ids.replace(" ", "").split(",") if x}
+
+    def check_production(self) -> None:
+        """Stage and prod must never run with the development defaults."""
+        if not self.is_production_like:
+            return
+        weak = [
+            name
+            for name, value in (
+                ("JWT_SECRET", self.jwt_secret),
+                ("INTERNAL_TOKEN", self.internal_token),
+                ("RUNNER_TOKEN", self.runner_token),
+            )
+            if value.startswith("dev-") or len(value) < 32
+        ]
+        if not self.telegram_bot_token:
+            weak.append("TELEGRAM_BOT_TOKEN")
+        if weak:
+            raise RuntimeError(f"insecure or missing settings for {self.bayt_env}: {weak}")
 
     @property
     def is_production_like(self) -> bool:

@@ -17,6 +17,7 @@ from app.core import ratelimit
 from app.db.session import dispose, session_factory
 from app.services import jobs
 from app.services.admin import load_overrides
+from app.settings import get_settings
 
 log = logging.getLogger("bayt.api")
 
@@ -27,6 +28,7 @@ from app.services import onboarding as _onboarding  # noqa: E402,F401
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    get_settings().check_production()
     validate_all()  # a broken economy.yaml must stop the boot, not surface later
     if len(list_generators()) != 27:
         raise RuntimeError("expected 27 generators")

@@ -52,6 +52,7 @@ services:
       dockerfile: api/Dockerfile
     <<: *env
     restart: unless-stopped
+    networks: [default, sandbox]
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -68,6 +69,7 @@ services:
       dockerfile: worker/Dockerfile
     <<: *env
     restart: unless-stopped
+    networks: [default, sandbox]
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -86,6 +88,9 @@ services:
       context: ./runner
     <<: *env
     restart: unless-stopped
+    # Only the internal network: no route to the internet at all, besides the
+    # jail's own empty network namespace for student code.
+    networks: [sandbox]
     # No outbound network for user code: the jail drops the net namespace, and
     # the service itself only needs to be reachable from api/worker.
     security_opt:
@@ -120,6 +125,11 @@ services:
       - caddyconfig:/config
     environment:
       SITE_ADDRESS: ":80"
+
+networks:
+  default: {}
+  sandbox:
+    internal: true
 
 volumes:
   pgdata:

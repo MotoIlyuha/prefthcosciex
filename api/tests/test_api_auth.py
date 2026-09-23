@@ -7,7 +7,7 @@ from urllib.parse import parse_qsl, urlencode
 
 import httpx
 
-from tests.conftest import init_data, login
+from tests.conftest import BOT_TOKEN, init_data, login
 
 
 async def test_valid_init_data_signs_in_and_creates_the_account(client: httpx.AsyncClient) -> None:
@@ -98,7 +98,7 @@ async def test_login_widget(client: httpx.AsyncClient) -> None:
     from app.core.initdata import sign_login_widget
 
     fields = {"id": "1009", "first_name": "Веб", "auth_date": str(int(time.time()))}
-    fields["hash"] = sign_login_widget(fields, "123456:TEST-TOKEN-for-bayt-tests")
+    fields["hash"] = sign_login_widget(fields, BOT_TOKEN)
     resp = await client.post(
         "/auth/widget", json={**fields, "id": 1009, "auth_date": int(fields["auth_date"])}
     )

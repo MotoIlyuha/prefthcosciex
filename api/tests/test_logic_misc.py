@@ -184,3 +184,20 @@ def test_placement_unlocks_floors_sequentially() -> None:
 def test_strong_student_detection() -> None:
     assert is_strong([(21, 4, True), (24, 4, True)])
     assert not is_strong([(8, 3, True)])
+
+
+def test_production_refuses_development_secrets() -> None:
+    import pytest
+
+    from app.settings import Settings
+
+    Settings(bayt_env="local").check_production()
+    with pytest.raises(RuntimeError, match="JWT_SECRET"):
+        Settings(bayt_env="stage", telegram_bot_token="1:x").check_production()
+    Settings(
+        bayt_env="prod",
+        telegram_bot_token="1:x",
+        jwt_secret="a" * 64,
+        internal_token="b" * 64,
+        runner_token="c" * 64,
+    ).check_production()

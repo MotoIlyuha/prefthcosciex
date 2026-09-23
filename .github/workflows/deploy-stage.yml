@@ -1,0 +1,46 @@
+name: Deploy stage
+
+# Deploys the stage stand over SSH after CI-relevant pushes, or on demand.
+# Secrets (Settings → Secrets and variables → Actions):
+#   STAGE_SSH_HOST, STAGE_SSH_USER, STAGE_SSH_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME
+#   optional: STAGE_DOMAIN, ADMIN_TELEGRAM_IDS
+# Every other secret is generated on the server by infra/deploy-stage.sh.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, claude/lucid-noether-qn8zi6]
+
+concurrency:
+  group: deploy-stage
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: stage
+    env:
+      STAGE_SSH_HOST: ${{ secrets.STAGE_SSH_HOST }}
+      STAGE_SSH_USER: ${{ secrets.STAGE_SSH_USER }}
+      STAGE_SSH_KEY: ${{ secrets.STAGE_SSH_KEY }}
+      STAGE_DOMAIN: ${{ secrets.STAGE_DOMAIN }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_BOT_USERNAME: ${{ secrets.TELEGRAM_BOT_USERNAME }}
+      ADMIN_TELEGRAM_IDS: ${{ secrets.ADMIN_TELEGRAM_IDS }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check that the stage secrets exist
+        id: secrets
+        run: |
+          missing=""
+          for name in STAGE_SSH_HOST STAGE_SSH_KEY TELEGRAM_BOT_TOKEN TELEGRAM_BOT_USERNAME; do
+            [ -z "${!name}" ] && missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::warning::Stage deploy skipped, missing secrets:$missing (see docs/RUNBOOK.md)"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Deploy
+        if: steps.secrets.outputs.ready == 'true'
+        run: bash infra/deploy-stage.sh

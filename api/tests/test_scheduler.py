@@ -50,8 +50,9 @@ def bot_api() -> Iterator[BotApi]:
     telegram.set_transport(None)
 
 
-async def _student(db: AsyncSession, tg_id: int, tz: str = "Europe/Moscow",
-                   seen: datetime = MONDAY) -> User:
+async def _student(
+    db: AsyncSession, tg_id: int, tz: str = "Europe/Moscow", seen: datetime = MONDAY
+) -> User:
     user, _ = await ensure_user(db, TelegramUser(tg_id, f"U{tg_id}", None, "ru"))
     user.tz = tz
     user.last_seen_at = seen
@@ -62,8 +63,9 @@ async def _student(db: AsyncSession, tg_id: int, tz: str = "Europe/Moscow",
     return user
 
 
-async def test_morning_plans_follow_each_time_zone(db: AsyncSession,
-                                                   jobs_recorder: JobRecorder) -> None:
+async def test_morning_plans_follow_each_time_zone(
+    db: AsyncSession, jobs_recorder: JobRecorder
+) -> None:
     moscow = await _student(db, 9001, "Europe/Moscow")
     vladivostok = await _student(db, 9002, "Asia/Vladivostok")
     # 20:30 UTC: 05:30 in Vladivostok (a new day), 23:30 in Moscow (still Monday).
@@ -73,8 +75,11 @@ async def test_morning_plans_follow_each_time_zone(db: AsyncSession,
     assert plans[moscow.id].isoformat() == "2026-10-05"
     assert plans[vladivostok.id].isoformat() == "2026-10-06"
     assert await scheduler.morning_plans(db, moment) == 0  # idempotent
-    note = await db.scalar(select(Notification).where(Notification.user_id == vladivostok.id,
-                                                      Notification.kind == "dailies_open"))
+    note = await db.scalar(
+        select(Notification).where(
+            Notification.user_id == vladivostok.id, Notification.kind == "dailies_open"
+        )
+    )
     assert note is not None
     local = note.scheduled_at.astimezone(__import__("zoneinfo").ZoneInfo("Asia/Vladivostok"))
     assert local.hour == 16  # the default «дейлики открыты» time
@@ -88,10 +93,21 @@ async def test_evening_reminder_is_skipped_once_the_threshold_is_met(
     assert await scheduler.evening_reminders(db, evening) == 1
     note = await db.scalar(select(Notification).where(Notification.user_id == user.id))
     assert note is not None and note.kind == "threshold_missed"
-    stats = DailyStats(user_id=user.id, date=MONDAY.date(), coins_earned=40, coins_capped=0,
-                       tasks_done=3, threshold_met=True, easy_day=False, vacation=False,
-                       time_spent_s=0, xp=0, feedback_bonuses=0, free_reveals_used=0,
-                       similar_counts={})
+    stats = DailyStats(
+        user_id=user.id,
+        date=MONDAY.date(),
+        coins_earned=40,
+        coins_capped=0,
+        tasks_done=3,
+        threshold_met=True,
+        easy_day=False,
+        vacation=False,
+        time_spent_s=0,
+        xp=0,
+        feedback_bonuses=0,
+        free_reveals_used=0,
+        similar_counts={},
+    )
     db.add(stats)
     await db.commit()
     result = await scheduler.deliver_due(db, MONDAY.replace(hour=17, minute=5))
@@ -99,8 +115,7 @@ async def test_evening_reminder_is_skipped_once_the_threshold_is_met(
     assert bot_api.sent == []
 
 
-async def test_long_streak_gets_the_last_chance_message(db: AsyncSession,
-                                                        bot_api: BotApi) -> None:
+async def test_long_streak_gets_the_last_chance_message(db: AsyncSession, bot_api: BotApi) -> None:
     user = await _student(db, 9021)
     streak = await db.get(Streak, user.id)
     assert streak is not None
@@ -129,8 +144,9 @@ async def test_blocked_bot_marks_failed_and_temporary_errors_retry(
     await scheduler.deliver_due(db, MONDAY.replace(hour=9, minute=1))
     note = await db.scalar(select(Notification).where(Notification.user_id == user.id))
     assert note is not None and note.status == "failed"
-    await schedule(db, user.id, "floor_unlocked", {"floor": 2, "title": "x"},
-                   now=MONDAY.replace(hour=9))
+    await schedule(
+        db, user.id, "floor_unlocked", {"floor": 2, "title": "x"}, now=MONDAY.replace(hour=9)
+    )
     await db.commit()
     bot_api.status = 502
     await scheduler.deliver_due(db, MONDAY.replace(hour=9, minute=2))
@@ -143,9 +159,15 @@ async def test_blocked_bot_marks_failed_and_temporary_errors_retry(
 async def test_curator_digest_and_idle_alert(db: AsyncSession) -> None:
     student = await _student(db, 9041, seen=MONDAY - timedelta(days=3))
     parent = await _student(db, 9042)
-    link = CuratorLink(student_id=student.id, curator_id=parent.id, status="active",
-                       access="progress", role="parent", invited_by=student.id,
-                       daily_digest_time=time(20, 0))
+    link = CuratorLink(
+        student_id=student.id,
+        curator_id=parent.id,
+        status="active",
+        access="progress",
+        role="parent",
+        invited_by=student.id,
+        daily_digest_time=time(20, 0),
+    )
     db.add(link)
     settings = await db.get(UserSettings, parent.id)
     assert settings is not None
@@ -153,8 +175,10 @@ async def test_curator_digest_and_idle_alert(db: AsyncSession) -> None:
     await db.commit()
     planned = await scheduler.curator_updates(db, MONDAY.replace(hour=17, minute=7))
     assert planned == 2
-    kinds = sorted(n.kind for n in await db.scalars(
-        select(Notification).where(Notification.user_id == parent.id)))
+    kinds = sorted(
+        n.kind
+        for n in await db.scalars(select(Notification).where(Notification.user_id == parent.id))
+    )
     assert kinds == ["cur_digest", "cur_idle"]
     assert await scheduler.curator_updates(db, MONDAY.replace(hour=17, minute=7)) == 0
 
@@ -186,8 +210,9 @@ async def test_big_file_is_prebuilt(db: AsyncSession) -> None:
     from app.services.instances import create
 
     user = await _student(db, 9071)
-    row = await create(db, user_id=user.id, task_no=27, subtype=None, difficulty=3, seed=5,
-                       context="practice")
+    row = await create(
+        db, user_id=user.id, task_no=27, subtype=None, difficulty=3, seed=5, context="practice"
+    )
     await db.commit()
     assert await scheduler.build_big_file(db, row.id) is True
     from app.services.assets import store

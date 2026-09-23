@@ -51,6 +51,11 @@ extend-exclude = ["alembic/versions"]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "N", "C4", "PTH", "ASYNC"]
 ignore = ["RUF001", "RUF002", "RUF003", "B008"]
 
+[tool.ruff.lint.isort]
+# `alembic/` is also a local directory; the package is third-party.
+known-third-party = ["alembic", "egegen"]
+known-first-party = ["app", "tests"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true

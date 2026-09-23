@@ -29,7 +29,7 @@ jobs:
       - run: uv run pytest -q --timeout=2400
 
   api:
-    name: api (ruff, mypy --strict, pytest on PostgreSQL)
+    name: api (ruff, mypy --strict, pytest on PostgreSQL, coverage ≥ 80 %)
     runs-on: ubuntu-24.04
     services:
       postgres:
@@ -47,11 +47,8 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
     env:
-      BAYT_ENV: test
       DATABASE_URL: postgresql+asyncpg://bayt:bayt@localhost:5432/bayt_test
-      REDIS_URL: redis://localhost:6379/0
-      JWT_SECRET: ci-only-secret-ci-only-secret-ci-only-secret
-      TELEGRAM_BOT_TOKEN: "123456:TEST-token-for-hmac-checks"
+      REDIS_URL: redis://localhost:6379/15
     defaults:
       run:
         working-directory: api
@@ -65,4 +62,143 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy --strict app
-      - run: uv run pytest -q --cov=app --cov-report=term-missing
+      - run: uv run pytest -q --cov=app --cov-report=term
+      - run: uv run pip-audit --skip-editable --progress-spinner off
+
+  runner:
+    name: runner (nsjail sandbox tests)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: runner
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build nsjail
+        working-directory: /tmp
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends protobuf-compiler libprotobuf-dev libnl-route-3-dev bison flex pkg-config
+          git clone --depth 1 --branch 3.4 https://github.com/google/nsjail.git
+          make -C nsjail -j"$(nproc)"
+          sudo cp nsjail/nsjail /usr/local/bin/
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --all-extras --frozen
+      - run: uv run ruff check . && uv run ruff format --check .
+      - run: uv run mypy --strict bayt_runner
+      # nsjail needs root to create namespaces, as in the container.
+      - run: sudo -E env "PATH=$PATH" "$(pwd)/.venv/bin/python" -m pytest -q
+
+  worker-bot:
+    name: worker and bot (ruff, mypy --strict, pytest)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - working-directory: worker
+        run: |
+          uv sync --all-extras --frozen
+          uv run ruff check . && uv run ruff format --check .
+          uv run mypy --strict bayt_worker
+          uv run pytest -q
+      - working-directory: bot
+        run: |
+          uv sync --all-extras --frozen
+          uv run ruff check . && uv run ruff format --check .
+          uv run mypy --strict bayt_bot
+          uv run pytest -q
+
+  client:
+    name: client (eslint, tsc, vitest, build, bundle budget)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: node scripts/vendor-pyodide.mjs && npm run build && node scripts/check-size.mjs
+
+  e2e:
+    name: e2e (Playwright against API + client)
+    runs-on: ubuntu-24.04
+    needs: [api, client]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bayt
+          POSTGRES_PASSWORD: bayt
+          POSTGRES_DB: bayt
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bayt" --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgresql+asyncpg://bayt:bayt@localhost:5432/bayt
+      REDIS_URL: redis://localhost:6379/1
+      DEV_LOGIN: "true"
+      BAYT_ENV: local
+      TELEGRAM_BOT_TOKEN: "123456:E2E"
+      TELEGRAM_BOT_USERNAME: bayt_e2e_bot
+      RUNNER_URL: http://127.0.0.1:8081
+      RUNNER_TOKEN: dev-runner-token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: API (migrate, seed, serve)
+        working-directory: api
+        run: |
+          uv sync --frozen
+          uv run alembic upgrade head
+          uv run python -m app.seed
+          nohup uv run uvicorn app.main:app --port 8000 > /tmp/api.log 2>&1 &
+      - name: Runner (fallback mode: e2e does not test the jail)
+        working-directory: runner
+        run: |
+          uv sync --frozen
+          RUNNER_ALLOW_UNSAFE=1 nohup uv run python -m bayt_runner.server > /tmp/runner.log 2>&1 &
+      - name: Client
+        working-directory: client
+        run: |
+          npm ci
+          node scripts/vendor-pyodide.mjs
+          VITE_E2E=1 npx vite build
+          nohup npx vite preview --port 4173 > /tmp/client.log 2>&1 &
+          npx playwright install --with-deps chromium
+          for i in $(seq 1 30); do curl -fs localhost:8000/api/health && break; sleep 2; done
+      - working-directory: client
+        run: npx playwright test
+      - if: failure()
+        run: tail -n 200 /tmp/api.log /tmp/runner.log /tmp/client.log
+
+  images:
+    name: docker images build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose build api worker bot runner client

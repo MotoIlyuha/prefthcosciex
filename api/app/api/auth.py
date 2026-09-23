@@ -49,7 +49,7 @@ class DevLoginIn(BaseModel):
 
 async def _ip_limit(request: Request) -> None:
     ip = request.client.host if request.client else "unknown"
-    await hit("auth", ip, 30, 60)
+    await hit("auth", ip, get_settings().rate_limit_auth_per_min, 60)
 
 
 def _with_cookie(response: Response, result: dict[str, Any]) -> dict[str, Any]:
