@@ -7,8 +7,23 @@ from dataclasses import dataclass
 # Ladder of (task, difficulty) rungs covering "no code", "Python basics", "games",
 # and "В level". A correct answer climbs, a wrong one descends.
 LADDER: tuple[tuple[int, int], ...] = (
-    (1, 2), (4, 2), (7, 3), (8, 3), (2, 3), (11, 3), (5, 3), (14, 3),
-    (16, 3), (19, 3), (20, 3), (15, 4), (17, 4), (13, 4), (21, 4), (24, 4), (27, 4),
+    (1, 2),
+    (4, 2),
+    (7, 3),
+    (8, 3),
+    (2, 3),
+    (11, 3),
+    (5, 3),
+    (14, 3),
+    (16, 3),
+    (19, 3),
+    (20, 3),
+    (15, 4),
+    (17, 4),
+    (13, 4),
+    (21, 4),
+    (24, 4),
+    (27, 4),
 )
 START_INDEX = 3
 STEPS = 8

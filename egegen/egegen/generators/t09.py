@@ -216,9 +216,7 @@ class Task09(Generator):
                 return max(counts.values()) == 1 and sum(row) > int(condition["threshold"])
             case "divisible_count":
                 divisor = int(condition["divisor"])
-                return len([x for x in row if x % divisor == 0]) >= int(
-                    condition["at_least"]
-                )
+                return len([x for x in row if x % divisor == 0]) >= int(condition["at_least"])
             case "average_vs_max":
                 return max(row) * len(row) > int(condition["factor"]) * sum(row)
         raise ValueError(condition["kind"])

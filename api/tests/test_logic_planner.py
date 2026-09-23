@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 import pytest
+from egegen.core.registry import list_generators
 
 from app.logic.planner import (
     MAX_MANDATORY_SECONDS,
@@ -17,7 +18,6 @@ from app.logic.planner import (
     plan,
 )
 from app.logic.skills import SkillState, add_reason
-from egegen.core.registry import list_generators
 
 T = date(2026, 10, 5)
 
@@ -33,7 +33,9 @@ def subtypes() -> list[SubtypeInfo]:
 
 @pytest.mark.parametrize("floors_open", [{1}, {1, 2, 3}, set(range(1, 14))])
 @pytest.mark.parametrize("band", ["A", "B", "C"])
-def test_three_mandatory_plus_bonus(subtypes: list[SubtypeInfo], floors_open: set[int], band: str) -> None:
+def test_three_mandatory_plus_bonus(
+    subtypes: list[SubtypeInfo], floors_open: set[int], band: str
+) -> None:
     items = plan(PlanInput(T, band, frozenset(floors_open), subtypes, challenge_enabled=True))
     mandatory = [i for i in items if i.mandatory]
     assert len(mandatory) == 3
@@ -66,9 +68,14 @@ def test_misread_adds_the_condition_checklist(subtypes: list[SubtypeInfo]) -> No
 
 
 def test_mastered_task_not_repeated_two_days_running(subtypes: list[SubtypeInfo]) -> None:
-    skills = {s.subtype: SkillState(rating=1300, last_practiced=T - timedelta(days=1))
-              for s in subtypes if s.task_no == 1}
-    items = plan(PlanInput(T, "A", frozenset({1, 2}), subtypes, skills=skills, yesterday_tasks=(1,)))
+    skills = {
+        s.subtype: SkillState(rating=1300, last_practiced=T - timedelta(days=1))
+        for s in subtypes
+        if s.task_no == 1
+    }
+    items = plan(
+        PlanInput(T, "A", frozenset({1, 2}), subtypes, skills=skills, yesterday_tasks=(1,))
+    )
     assert 1 not in [i.task_no for i in items if i.mandatory]
 
 
@@ -79,8 +86,10 @@ def test_at_least_one_task_without_code(subtypes: list[SubtypeInfo]) -> None:
 
 
 def test_beta_generators_only_in_challenge(subtypes: list[SubtypeInfo]) -> None:
-    beta = [SubtypeInfo(s.subtype, s.task_no, s.target_seconds, s.requires_code, beta=s.task_no == 1)
-            for s in subtypes]
+    beta = [
+        SubtypeInfo(s.subtype, s.task_no, s.target_seconds, s.requires_code, beta=s.task_no == 1)
+        for s in subtypes
+    ]
     items = plan(PlanInput(T, "A", frozenset({1}), beta, challenge_enabled=True))
     assert all(i.task_no != 1 for i in items if i.mandatory)
 
@@ -102,6 +111,8 @@ def test_focus_topic_is_preferred(subtypes: list[SubtypeInfo]) -> None:
 
 
 def test_review_queue_feeds_the_consolidate_slot(subtypes: list[SubtypeInfo]) -> None:
-    due = SkillState(rating=1150, last_practiced=T - timedelta(days=6), next_review=T - timedelta(days=1))
+    due = SkillState(
+        rating=1150, last_practiced=T - timedelta(days=6), next_review=T - timedelta(days=1)
+    )
     items = plan(PlanInput(T, "A", frozenset({1, 2, 3}), subtypes, skills={"12.1_digit_sum": due}))
     assert "12.1_digit_sum" in [i.subtype for i in items]

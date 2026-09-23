@@ -135,7 +135,9 @@ def plan(inp: PlanInput) -> list[PlanItem]:
         scored.append((priority, info))
     scored.sort(key=lambda pair: (-pair[0], pair[1].subtype))
 
-    def item(info: SubtypeInfo, slot: str, *, mandatory: bool, difficulty: int | None = None) -> PlanItem:
+    def item(
+        info: SubtypeInfo, slot: str, *, mandatory: bool, difficulty: int | None = None
+    ) -> PlanItem:
         state = state_of(info.subtype)
         level = difficulty or pick_difficulty(state, today, new_slot=slot == "new")
         return PlanItem(
@@ -193,9 +195,7 @@ def plan(inp: PlanInput) -> list[PlanItem]:
     )
 
     if inp.python_exercise_due:
-        chosen.append(
-            PlanItem("python", 0, "py.minimum", 1, True, 300, ("python_minimum",))
-        )
+        chosen.append(PlanItem("python", 0, "py.minimum", 1, True, 300, ("python_minimum",)))
         budget -= 300
     else:
         take("new", (0.0, 0.5), ranked) or take("new", None, ranked)
@@ -209,7 +209,11 @@ def plan(inp: PlanInput) -> list[PlanItem]:
         if c.slot != "python"
     ):
         light = next(
-            (i for i in ranked if not i.requires_code and i.task_no not in used_tasks and not i.beta),
+            (
+                i
+                for i in ranked
+                if not i.requires_code and i.task_no not in used_tasks and not i.beta
+            ),
             None,
         )
         if light is not None:
@@ -241,9 +245,7 @@ def plan(inp: PlanInput) -> list[PlanItem]:
             if state_of(info.subtype).mastery(today) >= 0.8 and info.task_no not in used_tasks
         ]
         hard = [
-            info
-            for info in inp.subtypes
-            if info.task_no >= 24 and info.task_no not in used_tasks
+            info for info in inp.subtypes if info.task_no >= 24 and info.task_no not in used_tasks
         ]
         # Beta generators are allowed here and only here (16.5).
         pool = strong or sorted(hard, key=lambda i: i.subtype)
@@ -268,9 +270,7 @@ def _include_focus(
     """
     if not inp.focus_tasks or any(c.task_no in inp.focus_tasks for c in chosen):
         return
-    candidate = next(
-        (i for i in ranked if i.task_no in inp.focus_tasks and not i.beta), None
-    )
+    candidate = next((i for i in ranked if i.task_no in inp.focus_tasks and not i.beta), None)
     if candidate is None:
         return
     assert callable(make)

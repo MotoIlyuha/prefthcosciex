@@ -26,8 +26,20 @@ def test_typical_day_example_from_the_doc() -> None:
 
 @pytest.mark.parametrize(
     ("task", "difficulty", "expected"),
-    [(1, 1, 8), (1, 3, 10), (1, 5, 14), (17, 2, 12), (17, 3, 15), (17, 4, 20),
-     (21, 1, 18), (24, 3, 22), (25, 5, 30), (26, 2, 30), (27, 3, 36), (27, 5, 45)],
+    [
+        (1, 1, 8),
+        (1, 3, 10),
+        (1, 5, 14),
+        (17, 2, 12),
+        (17, 3, 15),
+        (17, 4, 20),
+        (21, 1, 18),
+        (24, 3, 22),
+        (25, 5, 30),
+        (26, 2, 30),
+        (27, 3, 36),
+        (27, 5, 45),
+    ],
 )
 def test_base_reward_table(task: int, difficulty: int, expected: int) -> None:
     assert base_reward(task, difficulty) == expected

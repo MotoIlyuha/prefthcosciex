@@ -33,22 +33,34 @@ def test_difficulty_scale() -> None:
 
 def test_elo_step_uses_fast_k_for_the_first_five() -> None:
     state = update(
-        SkillState(), difficulty=3, correct=True, attempt_no=1, hints_used=0,
-        time_ratio=1.0, today=T,
+        SkillState(),
+        difficulty=3,
+        correct=True,
+        attempt_no=1,
+        hints_used=0,
+        time_ratio=1.0,
+        today=T,
     )
     expected = 1000 + 60 * (1 - win_probability(1000, 1050))
     assert state.rating == pytest.approx(expected)
 
 
 def test_exam_weighs_more() -> None:
-    kwargs = dict(difficulty=3, correct=True, attempt_no=1, hints_used=0, time_ratio=1.0, today=T)
+    kwargs = {
+        "difficulty": 3,
+        "correct": True,
+        "attempt_no": 1,
+        "hints_used": 0,
+        "time_ratio": 1.0,
+        "today": T,
+    }
     plain = update(SkillState(), **kwargs)  # type: ignore[arg-type]
     exam = update(SkillState(), exam=True, **kwargs)  # type: ignore[arg-type]
     assert exam.rating - 1000 == pytest.approx(1.5 * (plain.rating - 1000))
 
 
 def test_second_try_counts_as_partial() -> None:
-    kwargs = dict(difficulty=3, correct=True, hints_used=0, time_ratio=1.0, today=T)
+    kwargs = {"difficulty": 3, "correct": True, "hints_used": 0, "time_ratio": 1.0, "today": T}
     first = update(SkillState(), attempt_no=1, **kwargs)  # type: ignore[arg-type]
     second = update(SkillState(), attempt_no=2, **kwargs)  # type: ignore[arg-type]
     assert first.rating > second.rating > 1000 - 60
@@ -65,8 +77,13 @@ def test_review_intervals_grow_on_success() -> None:
     reviews = []
     for i in range(4):
         state = update(
-            state, difficulty=2, correct=True, attempt_no=1, hints_used=0,
-            time_ratio=1.0, today=T + timedelta(days=i),
+            state,
+            difficulty=2,
+            correct=True,
+            attempt_no=1,
+            hints_used=0,
+            time_ratio=1.0,
+            today=T + timedelta(days=i),
         )
         reviews.append((state.next_review - (T + timedelta(days=i))).days)  # type: ignore[operator]
     assert reviews == [5, 12, 30, 30]

@@ -150,9 +150,7 @@ def buy_freeze(state: StreakState) -> StreakState:
     return replace(state, freezes=state.freezes + 1)
 
 
-def vacation_allowed(
-    requested: list[date], already_this_month: int, now_local: datetime
-) -> bool:
+def vacation_allowed(requested: list[date], already_this_month: int, now_local: datetime) -> bool:
     """At most 7 days a month, requested at least a day in advance (4.3)."""
     rules = economy().streak
     if not requested:

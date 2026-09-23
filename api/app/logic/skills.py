@@ -3,6 +3,7 @@ the confidence scale per task and the score forecast (2.3)."""
 
 from __future__ import annotations
 
+import itertools
 import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field, replace
@@ -92,10 +93,7 @@ def update(
     recent = (*state.correct_recent, 1 if score == 1.0 else 0)[-10:]
     ratios = state.time_ratios if time_ratio is None else (*state.time_ratios, time_ratio)
     # Spaced repetition (6.1): each clean success pushes the next review further.
-    if score == 1.0:
-        step = min(state.review_step + 1, len(REVIEW_INTERVALS) - 1)
-    else:
-        step = 0
+    step = min(state.review_step + 1, len(REVIEW_INTERVALS) - 1) if score == 1.0 else 0
     exam_results = (*state.exam_results, 1 if correct else 0) if exam else state.exam_results
     return replace(
         state,
@@ -200,7 +198,7 @@ def primary_to_test(primary: float) -> int:
     low_primary, low_test = scale[0]
     if primary < low_primary:
         return round(low_test * primary / low_primary)
-    for (p1, t1), (p2, t2) in zip(scale, scale[1:], strict=False):
+    for (p1, t1), (p2, t2) in itertools.pairwise(scale):
         if p1 <= primary <= p2:
             return round(t1 + (t2 - t1) * (primary - p1) / (p2 - p1))
     return scale[-1][1]

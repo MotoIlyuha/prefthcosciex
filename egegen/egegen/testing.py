@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Sequence
-from typing import cast
 from dataclasses import dataclass, field
+from typing import cast
 
 from egegen.checkers import check
 from egegen.core.generator import Generator

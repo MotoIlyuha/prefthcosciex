@@ -13,8 +13,19 @@ from typing import Literal
 from app.config.loader import economy
 
 Slot = Literal[
-    "new", "strengthen", "consolidate", "repeat", "challenge",
-    "practice", "similar", "onboarding", "placement", "extern", "boss", "exam", "python",
+    "new",
+    "strengthen",
+    "consolidate",
+    "repeat",
+    "challenge",
+    "practice",
+    "similar",
+    "onboarding",
+    "placement",
+    "extern",
+    "boss",
+    "exam",
+    "python",
 ]
 
 

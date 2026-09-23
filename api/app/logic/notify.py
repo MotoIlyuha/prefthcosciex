@@ -72,9 +72,11 @@ def decide(
         idle = now - last_seen
         if idle >= timedelta(days=30) and kind != "demo_approved":
             return Decision(False, reason="inactive for 30 days")
-        if idle >= timedelta(days=14):
-            if last_weekly_ping is not None and now - last_weekly_ping < timedelta(days=7):
-                return Decision(False, reason="inactive: one a week at most")
+        recently_pinged = last_weekly_ping is not None and now - last_weekly_ping < timedelta(
+            days=7
+        )
+        if idle >= timedelta(days=14) and recently_pinged:
+            return Decision(False, reason="inactive: one a week at most")
     if sent_today >= MAX_PER_DAY:
         return Decision(False, reason="daily limit reached")
 

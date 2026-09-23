@@ -91,7 +91,9 @@ class Task15(Generator):
         fields = {"p1": p1, "p2": p2, "q1": q1, "q2": q2}
         return meta, fields
 
-    def _divisibility(self, rng: Rng, difficulty: int) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    def _divisibility(
+        self, rng: Rng, difficulty: int
+    ) -> tuple[dict[str, Any], dict[str, Any]] | None:
         a = rng.choice([6, 10, 12, 14, 15, 18, 20, 21, 22, 24, 26, 28, 33, 35])
         b = rng.choice([9, 12, 14, 15, 16, 20, 21, 25, 27, 30, 34, 39])
         if a == b:

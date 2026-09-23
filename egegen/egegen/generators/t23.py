@@ -98,7 +98,9 @@ class Task23(Generator):
         )
 
     # -- graph construction --------------------------------------------------
-    def _weighted_graph(self, rng: Rng, difficulty: int, cfg: Any) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    def _weighted_graph(
+        self, rng: Rng, difficulty: int, cfg: Any
+    ) -> tuple[dict[str, Any], dict[str, Any]] | None:
         size = rng.randint(
             cfg.weighted_min_nodes,
             min(cfg.weighted_max_nodes, 8 + difficulty, len(LATIN_VERTEX_LETTERS)),
@@ -116,7 +118,9 @@ class Task23(Generator):
         meta = {"labels": labels, "matrix": matrix, "size": size}
         return meta, {"size": size}
 
-    def _dag(self, rng: Rng, difficulty: int, cfg: Any) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    def _dag(
+        self, rng: Rng, difficulty: int, cfg: Any
+    ) -> tuple[dict[str, Any], dict[str, Any]] | None:
         size = rng.randint(
             cfg.dag_min_nodes,
             min(cfg.dag_max_nodes, 9 + difficulty * 2, len(LATIN_VERTEX_LETTERS)),
@@ -222,7 +226,7 @@ class Task23(Generator):
     def _plausible(self, answer: str, meta: dict[str, Any], cfg: Any) -> bool:
         value = int(answer)
         if meta["question"] in ("paths", "paths_through", "paths_avoiding"):
-                return int(cfg.dag_answer_min) <= value <= int(cfg.dag_answer_max)
+            return int(cfg.dag_answer_min) <= value <= int(cfg.dag_answer_max)
         if meta["question"] == "count_shortest":
             return 1 <= value <= 12
         return 2 <= value <= 10_000

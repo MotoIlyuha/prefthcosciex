@@ -27,3 +27,42 @@ jobs:
       - run: uv run mypy --strict egegen
       - run: uv run egegen selfcheck
       - run: uv run pytest -q --timeout=2400
+
+  api:
+    name: api (ruff, mypy --strict, pytest on PostgreSQL)
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bayt
+          POSTGRES_PASSWORD: bayt
+          POSTGRES_DB: bayt_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bayt" --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      BAYT_ENV: test
+      DATABASE_URL: postgresql+asyncpg://bayt:bayt@localhost:5432/bayt_test
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET: ci-only-secret-ci-only-secret-ci-only-secret
+      TELEGRAM_BOT_TOKEN: "123456:TEST-token-for-hmac-checks"
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --all-extras --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy --strict app
+      - run: uv run pytest -q --cov=app --cov-report=term-missing

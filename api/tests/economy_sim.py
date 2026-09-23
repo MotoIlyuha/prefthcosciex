@@ -50,7 +50,7 @@ def daily_income(profile: Profile) -> float:
 def weekly_spend(profile: Profile) -> float:
     prices = economy().prices
     unit = {
-        "floor": prices.floor(4),        # a mid-game floor, 250 coins
+        "floor": prices.floor(4),  # a mid-game floor, 250 coins
         "reveal": prices.reveal["P"],
         "half_exam": prices.exam_half,
         "full_exam": prices.exam_full,
@@ -74,8 +74,11 @@ PROFILES = (
     Profile(
         name="Типичный",
         tasks=(
-            Task(4, 3), Task(12, 3), Task(15, 3),
-            Task(11, 3, "repeat"), Task(24, 5, "challenge"),
+            Task(4, 3),
+            Task(12, 3),
+            Task(15, 3),
+            Task(11, 3, "repeat"),
+            Task(24, 5, "challenge"),
         ),
         # A typical student clears the daily challenge only about half the time,
         # which is what brings income into the doc's 70-100 coins a day.
@@ -90,7 +93,11 @@ PROFILES = (
     Profile(
         name="Сильный (кэп)",
         tasks=(
-            Task(24, 5, "challenge"), Task(25, 5), Task(26, 5), Task(27, 5), Task(23, 5),
+            Task(24, 5, "challenge"),
+            Task(25, 5),
+            Task(26, 5),
+            Task(27, 5),
+            Task(23, 5),
         ),
         first_try=0.90,
         second_try=0.08,

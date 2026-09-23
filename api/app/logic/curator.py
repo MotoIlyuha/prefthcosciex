@@ -26,8 +26,17 @@ FIELDS: dict[Access, frozenset[str]] = {
     ),
     "full": frozenset(
         {
-            "streak", "threshold_today", "rank", "coins_by_day", "confidence", "forecast",
-            "exams", "subtypes", "reasons", "attempts", "time_spent",
+            "streak",
+            "threshold_today",
+            "rank",
+            "coins_by_day",
+            "confidence",
+            "forecast",
+            "exams",
+            "subtypes",
+            "reasons",
+            "attempts",
+            "time_spent",
         }
     ),
 }

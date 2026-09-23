@@ -41,9 +41,14 @@ def test_unknown_zone_falls_back() -> None:
 
 # -- notifications ------------------------------------------------------------
 def base(**kw: object) -> dict[str, object]:
-    args: dict[str, object] = dict(
-        now=NOW, tz="Europe/Moscow", enabled=True, sent_today=0, last_seen=NOW, streak=5
-    )
+    args: dict[str, object] = {
+        "now": NOW,
+        "tz": "Europe/Moscow",
+        "enabled": True,
+        "sent_today": 0,
+        "last_seen": NOW,
+        "streak": 5,
+    }
     args.update(kw)
     return args
 
@@ -87,7 +92,8 @@ def test_opt_out_and_inactivity() -> None:
     idle = NOW - timedelta(days=15)
     recent_ping = NOW - timedelta(days=2)
     assert not decide(
-        "dailies_open", **base(last_seen=idle, last_weekly_ping=recent_ping)  # type: ignore[arg-type]
+        "dailies_open",
+        **base(last_seen=idle, last_weekly_ping=recent_ping),  # type: ignore[arg-type]
     ).send
 
 
@@ -97,9 +103,20 @@ def test_deep_link() -> None:
 
 # -- curator -------------------------------------------------------------------
 CARD = {
-    "student_id": 1, "name": "Никита", "streak": 5, "threshold_today": True, "rank": "Байт",
-    "coins_by_day": [], "confidence": {}, "forecast": {}, "exams": [], "subtypes": {},
-    "reasons": {}, "attempts": [], "time_spent": 0, "free_text": "секрет",
+    "student_id": 1,
+    "name": "Никита",
+    "streak": 5,
+    "threshold_today": True,
+    "rank": "Байт",
+    "coins_by_day": [],
+    "confidence": {},
+    "forecast": {},
+    "exams": [],
+    "subtypes": {},
+    "reasons": {},
+    "attempts": [],
+    "time_spent": 0,
+    "free_text": "секрет",
 }
 
 
