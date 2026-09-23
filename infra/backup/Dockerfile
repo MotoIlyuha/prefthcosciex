@@ -1,4 +1,4 @@
-# Backup sidecar: pg_dump plus rclone to copy dumps to S3/MinIO (12.7).
+# Backup sidecar: pg_dump plus rclone to copy dumps to S3 (12.7).
 # rclone comes from the Alpine repository: the MinIO client binary is no longer published
 # at a stable download URL.
 FROM postgres:16-alpine

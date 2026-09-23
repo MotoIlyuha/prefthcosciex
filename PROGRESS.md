@@ -42,7 +42,7 @@
 | Безопасность: HMAC, JWT, роли, rate‑limit, CSP, раннер без сети, аудит зависимостей, удаление и экспорт | ✅ | `test_api_auth.py` (подделка, истёкший `auth_date`, ротация), `runner/tests` (сеть, ФС, процессы, окружение — в nsjail), CI `pip-audit` и `npm audit`, `test_export_and_deletion` |
 | Аналитика: события 15.3, админка с дашбордами 5.4 и переключателями | ✅ | `test_admin_dashboards_and_config`, `test_client_events_are_whitelisted` |
 | Стенд: HTTPS, бот и Mini App, CI/CD по пушу, бэкап/восстановление, нагрузка 500 пользователей p95 < 200 мс | ⛔ ждёт секретов | готово: `deploy-stage.yml`, `backup` + `restore-check.sh`, `load/k6-dailies.js` (локально: 25 пользователей, p95 17 мс, 0 % ошибок) |
-| Документация | ✅ | `README.md`, `docs/ARCHITECTURE.md`, `API.md` (из OpenAPI), `METHODIST.md`, `RUNBOOK.md`, `DECISIONS.md` (D‑001…D‑037), `KNOWN_GAPS.md`, `LEGAL/` |
+| Документация | ✅ | `README.md`, `docs/ARCHITECTURE.md`, `API.md` (из OpenAPI), `METHODIST.md`, `RUNBOOK.md`, `DECISIONS.md` (D‑001…D‑039), `KNOWN_GAPS.md`, `LEGAL/` |
 
 ## Команды
 

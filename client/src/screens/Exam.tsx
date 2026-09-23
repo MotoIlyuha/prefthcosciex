@@ -1,6 +1,6 @@
 // «Экзамен» (design doc 8): KEGE-style sheet, timer that keeps running, results.
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { FileChips, Figures, assetImages } from "../components/Assets";
@@ -126,6 +126,8 @@ export function ExamRun() {
   const [confirm, setConfirm] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [openedAt, setOpenedAt] = useState(Date.now());
+  // «Завершить» waits for a save still in flight, so the last answer is graded.
+  const pendingSave = useRef<Promise<unknown> | null>(null);
   const now = useNow();
   const back = useCallback(() => navigate("/exam"), [navigate]);
   useBackButton(back);
@@ -159,12 +161,14 @@ export function ExamRun() {
 
   const item = exam.sheet.find((s) => s.position === position) ?? exam.sheet[0]!;
   const save = async () => {
+    const request = api.post(`/exams/${examId}/answers`, {
+      position: item.position,
+      answer: answers[item.position] ?? "",
+      time_spent_s: item.time_spent_s + Math.round((Date.now() - openedAt) / 1000),
+    }, false);
+    pendingSave.current = request.catch(() => undefined);
     try {
-      await api.post(`/exams/${examId}/answers`, {
-        position: item.position,
-        answer: answers[item.position] ?? "",
-        time_spent_s: item.time_spent_s + Math.round((Date.now() - openedAt) / 1000),
-      }, false);
+      await request;
       await query.refetch();
       toast("Сохранено", "good");
     } catch (error) {
@@ -178,6 +182,7 @@ export function ExamRun() {
   const finish = async () => {
     setFinishing(true);
     try {
+      await pendingSave.current;
       await api.post(`/exams/${examId}/finish`);
       await client.invalidateQueries({ queryKey: ["exams"] });
       await query.refetch();

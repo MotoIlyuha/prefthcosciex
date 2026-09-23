@@ -31,11 +31,6 @@
 		reverse_proxy bot:8090
 	}
 
-	handle /s3/* {
-		uri strip_prefix /s3
-		reverse_proxy minio:9000
-	}
-
 	handle {
 		reverse_proxy client:80
 	}

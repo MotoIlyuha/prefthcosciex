@@ -84,12 +84,11 @@ BOT_API_URL=http://api:8000/api
 INTERNAL_TOKEN=$(gen 32)
 RUNNER_URL=http://runner:8081
 RUNNER_TOKEN=$(gen 32)
-S3_ENDPOINT=http://minio:9000
+S3_ENDPOINT=http://s3:8333
 S3_BUCKET=bayt
 S3_ACCESS_KEY=bayt
 S3_SECRET_KEY=$s3
 S3_REGION=us-east-1
-S3_PUBLIC_URL=https://__DOMAIN__/s3
 ADMIN_TELEGRAM_IDS=__ADMINS__
 STAGE_SITE_ADDRESS=__DOMAIN__
 ENV
@@ -101,8 +100,8 @@ set_var TELEGRAM_BOT_TOKEN "$BOT_TOKEN"
 set_var TELEGRAM_BOT_USERNAME "$BOT_USERNAME"
 set_var ADMIN_TELEGRAM_IDS "$ADMINS"
 set_var PUBLIC_BASE_URL "https://$DOMAIN"
-set_var S3_PUBLIC_URL "https://$DOMAIN/s3"
 set_var STAGE_SITE_ADDRESS "$DOMAIN"
+set_var S3_ENDPOINT "http://s3:8333"
 REMOTE
 
 echo "==> building and starting"

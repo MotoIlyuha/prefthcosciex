@@ -41,7 +41,6 @@ class Settings(BaseSettings):
     s3_access_key: str = ""
     s3_secret_key: str = ""
     s3_region: str = "us-east-1"
-    s3_public_url: str = ""
 
     posthog_key: str = ""
     posthog_host: str = ""

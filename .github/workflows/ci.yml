@@ -204,10 +204,10 @@ jobs:
       - run: cp .env.example .env
       - run: docker compose -f compose.yaml -f compose.stage.yaml build api worker bot runner client backup
       - name: Pull third-party images used on the stage
-        run: docker compose -f compose.yaml -f compose.stage.yaml pull postgres redis minio caddy
-      - name: Backup sidecar dumps PostgreSQL and copies it to MinIO
+        run: docker compose -f compose.yaml -f compose.stage.yaml pull postgres redis s3 caddy
+      - name: Backup sidecar dumps PostgreSQL and copies it to S3
         run: |
-          docker compose -f compose.yaml -f compose.stage.yaml up -d postgres minio backup
+          docker compose -f compose.yaml -f compose.stage.yaml up -d postgres s3 backup
           for i in $(seq 1 60); do
             if docker compose -f compose.yaml -f compose.stage.yaml logs backup | grep -q "copied to s3:"; then
               docker compose -f compose.yaml -f compose.stage.yaml logs backup
@@ -215,7 +215,7 @@ jobs:
             fi
             sleep 2
           done
-          docker compose -f compose.yaml -f compose.stage.yaml logs backup minio
+          docker compose -f compose.yaml -f compose.stage.yaml logs backup s3
           exit 1
       - if: always()
         run: docker compose -f compose.yaml -f compose.stage.yaml down -v

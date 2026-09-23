@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -269,6 +270,40 @@ async def test_training_exam_pauses_and_costs_nothing(
     assert resumed["paused"] is False
     result = (await client.post(f"/exams/{exam['id']}/finish", headers=headers)).json()
     assert result["primary"] == 0
+
+
+async def test_save_racing_the_finish_is_either_graded_or_rejected(
+    client: httpx.AsyncClient, db: AsyncSession
+) -> None:
+    """A «Сохранить» sent together with «Завершить» never lands after the grading."""
+    headers = await login(client, 3016)
+    for _ in range(4):
+        exam = (
+            await client.post(
+                "/exams", headers=headers, json={"kind": "block", "task_no": 15, "training": True}
+            )
+        ).json()
+        db.expire_all()
+        inst = await db.get(Instance, exam["sheet"][0]["instance"]["id"])
+        assert inst is not None
+        saved, finished = await asyncio.gather(
+            client.post(
+                f"/exams/{exam['id']}/answers",
+                headers=headers,
+                json={"position": 1, "answer": inst.answer},
+            ),
+            client.post(f"/exams/{exam['id']}/finish", headers=headers),
+        )
+        result = finished.json()
+        if saved.status_code == 200:
+            assert result["primary"] == 1
+        else:
+            assert saved.status_code == 409
+            assert result["primary"] == 0
+        db.expire_all()
+        answer = await db.get(ExamAnswer, (exam["id"], 1))
+        assert answer is not None
+        assert bool(answer.answer_raw) == (result["primary"] == 1)
 
 
 async def test_onboarding_first_win_pays_twelve(

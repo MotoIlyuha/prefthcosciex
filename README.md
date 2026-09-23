@@ -24,7 +24,7 @@
 
 ```bash
 cp .env.example .env          # заполнить TELEGRAM_BOT_TOKEN и остальное
-make up                       # postgres, redis, minio, api, bot, worker, runner, client, caddy
+make up                       # postgres, redis, s3, api, bot, worker, runner, client, caddy
 make migrate && make seed     # схема БД и сиды (этажи, цены, карточки методов)
 open http://localhost:8080
 ```

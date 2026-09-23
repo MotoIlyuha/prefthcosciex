@@ -180,6 +180,12 @@ def seconds_left(exam: Exam, now: datetime | None = None) -> int:
     return max(0, int((exam.deadline_at - moment).total_seconds()))
 
 
+async def _lock(session: AsyncSession, exam: Exam) -> None:
+    """Re-read the exam row FOR UPDATE: a save, a pause and the finish (also the one
+    triggered by the deadline) serialize, so no answer lands after the grading."""
+    await session.refresh(exam, with_for_update=True)
+
+
 async def _expire_if_needed(session: AsyncSession, user: User, exam: Exam) -> bool:
     """The timer keeps running when the app is closed (8): finish on the deadline."""
     if exam.finished_at is not None or exam.meta.get("paused_at"):
@@ -235,6 +241,7 @@ async def view(session: AsyncSession, user: User, exam: Exam) -> dict[str, Any]:
 async def save_answer(
     session: AsyncSession, user: User, exam: Exam, position: int, raw: str, time_spent_s: int
 ) -> dict[str, Any]:
+    await _lock(session, exam)
     if await _expire_if_needed(session, user, exam) or exam.finished_at is not None:
         raise conflict("exam_finished", "Экзамен уже завершён")
     if exam.meta.get("paused_at"):
@@ -251,6 +258,7 @@ async def save_answer(
 async def pause(session: AsyncSession, exam: Exam, paused: bool) -> dict[str, Any]:
     if not exam.training:
         raise conflict("no_pause", "Пауза есть только в тренировочном режиме")
+    await _lock(session, exam)
     if exam.finished_at is not None:
         raise conflict("exam_finished", "Экзамен уже завершён")
     now = datetime.now(UTC)
@@ -283,6 +291,7 @@ def correct_parts(row: Instance, raw: str) -> int:
 
 
 async def finish(session: AsyncSession, user: User, exam: Exam) -> dict[str, Any]:
+    await _lock(session, exam)
     if exam.finished_at is not None:
         return await result(session, exam)
     now = datetime.now(UTC)

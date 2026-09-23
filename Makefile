@@ -7,7 +7,7 @@ help: ## Show this help
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: up
-up: ## Start the whole stack locally (postgres, redis, minio, api, bot, worker, runner, client, caddy)
+up: ## Start the whole stack locally (postgres, redis, s3, api, bot, worker, runner, client, caddy)
 	@test -f .env || cp .env.example .env
 	$(COMPOSE) up -d --build
 	@echo "Client: http://localhost:8080  API: http://localhost:8080/api/health"

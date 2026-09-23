@@ -12,7 +12,7 @@ Telegram ──initData──▶ client (React, Mini App / веб) ──JWT─�
                                                                   ├─ Redis 7 ── ARQ ──▶ worker
 Telegram Bot API ◀── bot (aiogram 3, webhook) ── /api/internal ───┤               └─▶ runner (nsjail)
                  ◀── worker (рассылки уведомлений)                 ├─ runner (nsjail, сеть sandbox)
-                                                                  └─ MinIO/S3 (ассеты экземпляров)
+                                                                  └─ S3/SeaweedFS (ассеты, бэкапы)
 ```
 
 | Каталог | Роль | Ключевые модули |

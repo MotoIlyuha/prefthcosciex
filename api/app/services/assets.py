@@ -1,4 +1,4 @@
-"""Storage for instance files: S3/MinIO in deployment, a local directory otherwise.
+"""Storage for instance files: S3 (SeaweedFS) in deployment, a local directory otherwise.
 
 Instances are pure functions of their seed, so a missing object is never data loss:
 the caller regenerates it. That keeps the 30-day expiry of the doc (12.1) harmless.
