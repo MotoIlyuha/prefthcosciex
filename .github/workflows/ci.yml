@@ -203,3 +203,19 @@ jobs:
       - uses: actions/checkout@v4
       - run: cp .env.example .env
       - run: docker compose -f compose.yaml -f compose.stage.yaml build api worker bot runner client backup
+      - name: Pull third-party images used on the stage
+        run: docker compose -f compose.yaml -f compose.stage.yaml pull postgres redis minio caddy
+      - name: Backup sidecar dumps PostgreSQL and copies it to MinIO
+        run: |
+          docker compose -f compose.yaml -f compose.stage.yaml up -d postgres minio backup
+          for i in $(seq 1 60); do
+            if docker compose -f compose.yaml -f compose.stage.yaml logs backup | grep -q "copied to s3:"; then
+              docker compose -f compose.yaml -f compose.stage.yaml logs backup
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f compose.yaml -f compose.stage.yaml logs backup minio
+          exit 1
+      - if: always()
+        run: docker compose -f compose.yaml -f compose.stage.yaml down -v

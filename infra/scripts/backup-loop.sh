@@ -9,9 +9,13 @@ KEEP_DAYS="${BACKUP_KEEP_DAYS:-30}"
 LOCAL_DAYS="${BACKUP_LOCAL_DAYS:-7}"
 BUCKET="${S3_BUCKET:-bayt}-backups"
 mkdir -p /backups
-if [ -n "${S3_ENDPOINT:-}" ] && command -v mc >/dev/null; then
-  mc alias set s3 "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" >/dev/null
-  mc mb --ignore-existing "s3/$BUCKET" >/dev/null
+if [ -n "${S3_ENDPOINT:-}" ] && command -v rclone >/dev/null; then
+  # rclone remote "s3" configured from the environment, no config file.
+  export RCLONE_CONFIG_S3_TYPE=s3 RCLONE_CONFIG_S3_PROVIDER=Minio
+  export RCLONE_CONFIG_S3_ENDPOINT="$S3_ENDPOINT"
+  export RCLONE_CONFIG_S3_ACCESS_KEY_ID="$S3_ACCESS_KEY"
+  export RCLONE_CONFIG_S3_SECRET_ACCESS_KEY="$S3_SECRET_KEY"
+  rclone mkdir "s3:$BUCKET"
   remote=1
 else
   remote=0
@@ -23,8 +27,8 @@ while true; do
     mv "${file}.part" "$file"
     echo "backup ok: $file ($(du -h "$file" | cut -f1))"
     if [ "$remote" = 1 ]; then
-      mc cp --quiet "$file" "s3/$BUCKET/" && echo "copied to s3/$BUCKET"
-      mc rm --recursive --force --older-than "${KEEP_DAYS}d" "s3/$BUCKET/" >/dev/null || true
+      rclone copyto "$file" "s3:$BUCKET/$(basename "$file")" && echo "copied to s3:$BUCKET"
+      rclone delete --min-age "${KEEP_DAYS}d" "s3:$BUCKET" || true
     fi
   else
     rm -f "${file}.part"

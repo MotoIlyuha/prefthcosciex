@@ -42,17 +42,19 @@ def main() -> None:
         "",
         "Общие правила:",
         "",
-        "* Авторизация — `Authorization: Bearer <access>`; access живёт 15 минут, refresh — 30 дней",
-        "  с ротацией (`POST /api/auth/refresh`).",
-        "* Все мутации принимают `Idempotency-Key`: повтор с тем же ключом возвращает первый ответ.",
-        "* Ошибки: `{\"detail\": {\"code\": \"…\", \"message\": \"текст для ученика\", …}}`.",
+        "* Авторизация — `Authorization: Bearer <access>`; access живёт 15 минут,",
+        "  refresh — 30 дней с ротацией (`POST /api/auth/refresh`).",
+        "* Все мутации принимают `Idempotency-Key`: повтор с тем же ключом",
+        "  возвращает первый ответ.",
+        '* Ошибки: `{"detail": {"code": "…", "message": "текст для ученика", …}}`.',
         "* Эталонный ответ, `hidden_seed` и решение никогда не приходят в ответах, кроме разбора",
         "  (`/reveal`) после закрытия задачи.",
         "* Лимиты: 60 ответов в минуту, 20 серверных запусков кода в час, 240 запросов в минуту.",
         "",
     ]
     for tag, rows in by_tag.items():
-        lines += [f"## {TAG_TITLES.get(tag, tag)}", "", "| Метод | Путь | Назначение |", "|---|---|---|"]
+        title = TAG_TITLES.get(tag, tag)
+        lines += [f"## {title}", "", "| Метод | Путь | Назначение |", "|---|---|---|"]
         for method, path, summary in sorted(rows, key=lambda r: (r[1], r[0])):
             lines.append(f"| `{method}` | `{path}` | {summary.replace('|', '/')} |")
         lines.append("")
