@@ -91,6 +91,17 @@ def python_binary() -> str:
     return str(Path(sys.executable).resolve())
 
 
+def library_path(python: str) -> str | None:
+    """``<prefix>/lib`` when the interpreter's libpython lives there (python:3.12 images).
+
+    Such a binary finds libpython through ``RUNPATH $ORIGIN/../lib``, and glibc resolves
+    ``$ORIGIN`` via ``/proc/self/exe`` — absent in the jail (``--disable_proc``). Without an
+    explicit library path the jailed interpreter does not start at all.
+    """
+    lib = Path(python).parents[1] / "lib"
+    return str(lib) if any(lib.glob("libpython3*.so*")) else None
+
+
 def nsjail_binary() -> str | None:
     return os.environ.get("NSJAIL") or shutil.which("nsjail")
 
@@ -129,6 +140,9 @@ def nsjail_command(workdir: Path, python: str) -> list[str]:
         mounts.append(prefix)  # an interpreter installed outside /usr (e.g. by uv)
     for directory in mounts:
         cmd += ["--bindmount_ro", directory]
+    libs = library_path(python)
+    if libs:
+        cmd += ["--env", f"LD_LIBRARY_PATH={libs}"]
     cmd += [
         "--bindmount",
         f"{workdir}:/work",

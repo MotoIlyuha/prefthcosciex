@@ -78,6 +78,8 @@ services:
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
+      # api applies the migrations before it reports healthy.
+      api: {condition: service_healthy}
 
   bot:
     build:
@@ -87,7 +89,7 @@ services:
     # on-failure: without a token a local run exits cleanly and stays stopped.
     restart: on-failure
     depends_on:
-      api: {condition: service_started}
+      api: {condition: service_healthy}
 
   runner:
     build:

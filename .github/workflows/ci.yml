@@ -231,6 +231,10 @@ jobs:
           curl -fs -X POST localhost:8080/api/admin/runner/smoke -H "Authorization: Bearer $token" | tee /tmp/smoke.json
           python3 -c 'import json,sys;d=json.load(open("/tmp/smoke.json"));sys.exit(0 if d["ok"] else 1)'
           docker compose -f compose.yaml ps -a
+          running=$(docker compose -f compose.yaml ps --status running --services | sort | tr '\n' ' ')
+          echo "running: $running"
+          for s in api caddy client postgres redis runner s3 worker; do echo " $running" | grep -q " $s " || { echo "$s is not running"; exit 1; }; done
+          if docker compose -f compose.yaml logs api worker runner | grep -q Traceback; then echo "traceback in logs"; exit 1; fi
       - if: failure()
         run: docker compose -f compose.yaml logs --tail=80
       - if: always()

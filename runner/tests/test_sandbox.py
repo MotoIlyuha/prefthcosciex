@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pytest
 
@@ -130,3 +131,16 @@ def test_blocked_attempts_are_logged(mode: str, caplog: pytest.LogCaptureFixture
     assert not result.ok
     assert any("sandbox blocked" in r.getMessage() for r in caplog.records)
     assert "socket" not in " ".join(r.getMessage() for r in caplog.records)
+
+
+def test_jail_gets_the_library_path_of_a_prefix_install(tmp_path: Path) -> None:
+    # python:3.12 images: libpython in <prefix>/lib, found via $ORIGIN, which needs /proc.
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "lib").mkdir()
+    python = tmp_path / "bin" / "python3.12"
+    python.write_text("")
+    cmd = sandbox.nsjail_command(tmp_path, str(python))
+    assert not any(part.startswith("LD_LIBRARY_PATH=") for part in cmd)
+    (tmp_path / "lib" / "libpython3.12.so.1.0").write_text("")
+    cmd = sandbox.nsjail_command(tmp_path, str(python))
+    assert cmd[cmd.index(f"LD_LIBRARY_PATH={tmp_path / 'lib'}") - 1] == "--env"
