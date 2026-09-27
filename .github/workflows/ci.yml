@@ -221,7 +221,9 @@ jobs:
         run: docker compose -f compose.yaml -f compose.stage.yaml down -v
       - name: "Whole stack as `make up`: health, web page, dev sign-in, code in the nsjail runner"
         run: |
-          docker compose -f compose.yaml up -d --build
+          # Postgres published to the host only here: the e2e helpers read reference answers.
+          printf 'services:\n  postgres:\n    ports: ["5432:5432"]\n' > /tmp/ci-ports.yaml
+          docker compose -f compose.yaml -f /tmp/ci-ports.yaml up -d --build
           for i in $(seq 1 90); do curl -fs localhost:8080/api/health && break; sleep 2; done
           curl -fs localhost:8080/api/health
           curl -fs localhost:8080/ | grep -q 'id="root"'
@@ -235,6 +237,19 @@ jobs:
           echo "running: $running"
           for s in api caddy client postgres redis runner s3 worker; do echo " $running" | grep -q " $s " || { echo "$s is not running"; exit 1; }; done
           if docker compose -f compose.yaml logs api worker runner | grep -q Traceback; then echo "traceback in logs"; exit 1; fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: "Playwright against the Docker stack (nginx + Caddy with CSP, runner in its container)"
+        working-directory: client
+        env:
+          E2E_BASE_URL: http://localhost:8080
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test
       - if: failure()
         run: docker compose -f compose.yaml logs --tail=80
       - if: always()
