@@ -8,7 +8,7 @@ import httpx
 
 from bayt_bot.api import ApiClient
 from bayt_bot.config import Config
-from bayt_bot.main import build_dispatcher, keyboard
+from bayt_bot.main import build_dispatcher, keyboard, menu_button_url
 from bayt_bot.texts import parse_start, start_reply, web_reply
 from bayt_bot.throttle import Throttle
 
@@ -88,3 +88,13 @@ def test_long_curator_payload_is_accepted() -> None:
     assert normalize_payload("cur_abc") == "cur_abc"
     reply = start_reply("curator_abc", {"curator": {"status": "pending"}}, BASE)
     assert "куратором" in reply.text
+
+
+def test_menu_button_only_for_https() -> None:
+    def config(url: str) -> Config:
+        return Config("1:x", "http://api/api", "t", url, "", "polling", "app", "bayt_bot")
+
+    assert menu_button_url(config("http://localhost:8080")) is None
+    assert (
+        menu_button_url(config("https://abc.trycloudflare.com")) == "https://abc.trycloudflare.com/"
+    )

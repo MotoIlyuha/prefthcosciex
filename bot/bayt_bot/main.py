@@ -95,6 +95,11 @@ async def health(_: web.Request) -> web.Response:
     return web.json_response({"status": "ok"})
 
 
+def menu_button_url(config: Config) -> str | None:
+    """Telegram accepts only HTTPS for a Mini App; a plain local run gets no button."""
+    return f"{config.public_base_url}/" if config.public_base_url.startswith("https://") else None
+
+
 async def run() -> None:
     logging.basicConfig(level=logging.INFO)
     config = Config.from_env()
@@ -107,18 +112,23 @@ async def run() -> None:
     bot = Bot(config.token)
     api = ApiClient(config.api_url, config.internal_token)
     dispatcher = build_dispatcher(config, api)
+    # The Mini App button next to the input field in every chat with the bot — also in a
+    # local run behind an HTTPS tunnel (README, «Проверить в настоящем Telegram»).
+    app_url = menu_button_url(config)
+    if app_url:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(text="Открыть «Байт»", web_app=WebAppInfo(url=app_url))
+        )
+    else:
+        log.warning(
+            "PUBLIC_BASE_URL is not HTTPS: no Mini App button, the bot answers commands only"
+        )
     if config.mode == "polling":
         await bot.delete_webhook(drop_pending_updates=False)
         await dispatcher.start_polling(bot)
         return
     if not config.webhook_secret:
         raise SystemExit("TELEGRAM_WEBHOOK_SECRET is required in webhook mode")
-    # The Mini App button next to the input field in every chat with the bot.
-    await bot.set_chat_menu_button(
-        menu_button=MenuButtonWebApp(
-            text="Открыть «Байт»", web_app=WebAppInfo(url=f"{config.public_base_url}/")
-        )
-    )
     await bot.set_webhook(
         f"{config.public_base_url}{WEBHOOK_PATH}",
         secret_token=config.webhook_secret,

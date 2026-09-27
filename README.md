@@ -46,13 +46,15 @@ docker compose up -d --build
 
 ### Проверить в настоящем Telegram без сервера
 
-1. Создайте бота у @BotFather и впишите в `.env` `TELEGRAM_BOT_TOKEN` и
-   `TELEGRAM_BOT_USERNAME` (`BOT_MODE=polling` уже стоит — вебхук не нужен).
+1. Впишите в `.env` `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` и свой числовой
+   `ADMIN_TELEGRAM_IDS` (секреты GitHub локальный Docker не видит). `BOT_MODE=polling`
+   уже стоит — вебхук не нужен.
 2. Дайте компьютеру временный HTTPS‑адрес: `cloudflared tunnel --url http://localhost:8080`
    (бесплатно, без регистрации) напечатает `https://….trycloudflare.com`.
 3. Впишите этот адрес в `PUBLIC_BASE_URL` в `.env` и выполните `docker compose up -d`.
-4. В @BotFather: `/newapp` → ваш бот → Web App URL = тот же адрес, short name `app`.
-   Откройте бота и нажмите «Открыть».
+4. Откройте бота в Telegram: `/start`, затем кнопка «Открыть «Байт»» слева от поля ввода
+   (бот ставит её сам, когда адрес HTTPS). Ссылка вида `t.me/<бот>/app` заработает после
+   `/newapp` в @BotFather с тем же адресом и short name `app`.
 
 Адрес туннеля меняется при каждом перезапуске `cloudflared`, и компьютер должен быть
 включён — для постоянного стенда нужен сервер (`docs/RUNBOOK.md`).
