@@ -466,5 +466,6 @@ async def test_trial_view_and_public_config(client: httpx.AsyncClient) -> None:
         "bot_username": "bayt_test_bot",
         "bot_id": 123456,
         "fipi_banner": config["fipi_banner"],
+        "dev_login": False,
     }
     assert config["fipi_banner"]

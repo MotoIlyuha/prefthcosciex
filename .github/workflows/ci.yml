@@ -219,3 +219,19 @@ jobs:
           exit 1
       - if: always()
         run: docker compose -f compose.yaml -f compose.stage.yaml down -v
+      - name: "Whole stack as `make up`: health, web page, dev sign-in, code in the nsjail runner"
+        run: |
+          docker compose -f compose.yaml up -d --build
+          for i in $(seq 1 90); do curl -fs localhost:8080/api/health && break; sleep 2; done
+          curl -fs localhost:8080/api/health
+          curl -fs localhost:8080/ | grep -q 'id="root"'
+          test "$(curl -fs localhost:8080/api/config/public | python3 -c 'import sys,json;print(json.load(sys.stdin)["dev_login"])')" = True
+          token=$(curl -fs -X POST localhost:8080/api/auth/dev -H 'Content-Type: application/json' \
+            -d '{"tg_id": 1, "first_name": "CI"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
+          curl -fs -X POST localhost:8080/api/admin/runner/smoke -H "Authorization: Bearer $token" | tee /tmp/smoke.json
+          python3 -c 'import json,sys;d=json.load(open("/tmp/smoke.json"));sys.exit(0 if d["ok"] else 1)'
+          docker compose -f compose.yaml ps -a
+      - if: failure()
+        run: docker compose -f compose.yaml logs --tail=80
+      - if: always()
+        run: docker compose -f compose.yaml down -v

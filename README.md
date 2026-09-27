@@ -20,14 +20,42 @@
 | `infra/` | Caddy, compose, деплой, бэкапы |
 | `docs/` | Архитектура, API, руководство методиста, RUNBOOK, решения, известные пробелы, юридические черновики |
 
-## Быстрый старт
+## Запуск на своём компьютере
+
+Нужны git и Docker: Docker Desktop на Windows и macOS, Docker Engine на Linux.
+Хватит 4 ГБ свободной памяти. Первая сборка образов занимает 10–15 минут.
 
 ```bash
-cp .env.example .env          # заполнить TELEGRAM_BOT_TOKEN и остальное
-make up                       # postgres, redis, s3, api, bot, worker, runner, client, caddy
-make migrate && make seed     # схема БД и сиды (этажи, цены, карточки методов)
-open http://localhost:8080
+git clone -b claude/lucid-noether-qn8zi6 https://github.com/MotoIlyuha/prefthcosciex.git
+cd prefthcosciex
+make up            # сам создаст .env из .env.example; схема БД и сиды применяются при старте api
 ```
+
+На Windows без `make` (PowerShell):
+
+```powershell
+copy .env.example .env
+docker compose up -d --build
+```
+
+Откройте http://localhost:8080 и нажмите «Войти как тестовый ученик»: без токена бота
+локально работает вход без Telegram. Первый вошедший становится администратором
+(«Профиль» → «Админка», там же смоук генераторов и раннера). Второй пользователь,
+например родитель для проверки куратора, — адрес http://localhost:8080/?dev=2&name=Мама.
+Остановить: `make down` (или `docker compose down`); стереть данные: `make clean`.
+
+### Проверить в настоящем Telegram без сервера
+
+1. Создайте бота у @BotFather и впишите в `.env` `TELEGRAM_BOT_TOKEN` и
+   `TELEGRAM_BOT_USERNAME` (`BOT_MODE=polling` уже стоит — вебхук не нужен).
+2. Дайте компьютеру временный HTTPS‑адрес: `cloudflared tunnel --url http://localhost:8080`
+   (бесплатно, без регистрации) напечатает `https://….trycloudflare.com`.
+3. Впишите этот адрес в `PUBLIC_BASE_URL` в `.env` и выполните `docker compose up -d`.
+4. В @BotFather: `/newapp` → ваш бот → Web App URL = тот же адрес, short name `app`.
+   Откройте бота и нажмите «Открыть».
+
+Адрес туннеля меняется при каждом перезапуске `cloudflared`, и компьютер должен быть
+включён — для постоянного стенда нужен сервер (`docs/RUNBOOK.md`).
 
 Полезное:
 

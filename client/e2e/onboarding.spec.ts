@@ -16,3 +16,9 @@ test("onboarding ends with a first win and opens the dailies", async ({ page }) 
   expect(await page.getByTestId("today-item").count()).toBeGreaterThanOrEqual(3);
   await expect(page.getByTestId("balance")).toHaveText("12");
 });
+
+test("a local run signs in without Telegram from the start page", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("dev-login").click();
+  await expect(page.getByTestId("onboarding").or(page.getByTestId("today"))).toBeVisible();
+});

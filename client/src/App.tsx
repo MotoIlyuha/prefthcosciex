@@ -43,11 +43,17 @@ type Boot = "loading" | "ready" | "signed_out" | "error";
 async function signIn(): Promise<string | undefined> {
   const { setTokens, accessToken, refreshToken } = useAuth.getState();
   const params = new URLSearchParams(window.location.search);
-  const devId = import.meta.env.DEV || import.meta.env.VITE_E2E ? params.get("dev") : null;
-  if (devId) {
-    const r = await api.post<SessionResponse>("/auth/dev", { tg_id: Number(devId), first_name: params.get("name") ?? "Тест" }, false);
-    setTokens(r.access_token, r.refresh_token);
-    return undefined;
+  // `?dev=<id>&name=…` signs in without Telegram where the API allows it (local runs and
+  // e2e); on stage and prod the API answers 404 and the usual sign-in continues.
+  const devId = params.get("dev");
+  if (devId && /^\d+$/.test(devId)) {
+    try {
+      const r = await api.post<SessionResponse>("/auth/dev", { tg_id: Number(devId), first_name: params.get("name") ?? "Тест" }, false);
+      setTokens(r.access_token, r.refresh_token);
+      return undefined;
+    } catch (error) {
+      if (!(error instanceof ApiError && error.status === 404)) throw error;
+    }
   }
   const initData = rawInitData();
   if (initData) {
@@ -215,7 +221,7 @@ export function App() {
 function SignedOut() {
   const config = useQuery({
     queryKey: ["public-config"],
-    queryFn: () => api.get<{ bot_username: string; bot_id: number | null }>("/config/public"),
+    queryFn: () => api.get<{ bot_username: string; bot_id: number | null; dev_login: boolean }>("/config/public"),
   });
   const origin = window.location.origin;
   const botId = config.data?.bot_id;
@@ -235,6 +241,15 @@ function SignedOut() {
           <p className="muted small">
             Или напишите боту {config.data?.bot_username ? `@${config.data.bot_username}` : ""} команду /web — он пришлёт одноразовую ссылку.
           </p>
+          {config.data?.dev_login ? (
+            <div className="card">
+              <p className="small">Локальный запуск: вход без Telegram. Первый вошедший — администратор.</p>
+              <Button kind="secondary" testId="dev-login" onClick={() => window.location.assign("/?dev=1&name=" + encodeURIComponent("Тестовый ученик"))}>
+                Войти как тестовый ученик
+              </Button>
+              <p className="muted small">Другой пользователь (например, куратор): адрес <code>/?dev=2&amp;name=Мама</code>.</p>
+            </div>
+          ) : null}
         </>
       )}
     </div>

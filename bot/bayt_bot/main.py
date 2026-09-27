@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from typing import Any
 
 from aiogram import Bot, Dispatcher, Router
@@ -98,7 +99,11 @@ async def run() -> None:
     logging.basicConfig(level=logging.INFO)
     config = Config.from_env()
     if not config.token:
-        raise SystemExit("TELEGRAM_BOT_TOKEN is required")
+        if os.environ.get("BAYT_ENV", "local") in ("stage", "prod"):
+            raise SystemExit("TELEGRAM_BOT_TOKEN is required")
+        # A local run without a bot is normal: the app works in the browser via dev sign-in.
+        log.warning("TELEGRAM_BOT_TOKEN is empty: the bot is off for this local run")
+        return
     bot = Bot(config.token)
     api = ApiClient(config.api_url, config.internal_token)
     dispatcher = build_dispatcher(config, api)

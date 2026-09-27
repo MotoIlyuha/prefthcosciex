@@ -76,6 +76,11 @@ class Settings(BaseSettings):
             raise RuntimeError(f"insecure or missing settings for {self.bayt_env}: {weak}")
 
     @property
+    def dev_login_enabled(self) -> bool:
+        """Sign-in without Telegram: local runs and e2e only, never on stage or prod."""
+        return self.dev_login and not self.is_production_like
+
+    @property
     def is_production_like(self) -> bool:
         return self.bayt_env in ("stage", "prod")
 

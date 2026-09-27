@@ -6,7 +6,9 @@ import time
 from urllib.parse import parse_qsl, urlencode
 
 import httpx
+import pytest
 
+from app.settings import get_settings
 from tests.conftest import BOT_TOKEN, init_data, login
 
 
@@ -113,6 +115,21 @@ async def test_login_widget(client: httpx.AsyncClient) -> None:
 async def test_dev_login_is_off_unless_enabled(client: httpx.AsyncClient) -> None:
     resp = await client.post("/auth/dev", json={"tg_id": 5})
     assert resp.status_code == 404
+
+
+async def test_dev_login_works_locally_and_never_on_stage(
+    client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    settings = get_settings()
+    monkeypatch.setattr(settings, "dev_login", True)
+    assert (await client.get("/config/public")).json()["dev_login"] is True
+    resp = await client.post("/auth/dev", json={"tg_id": 1012, "first_name": "Тест"})
+    assert resp.status_code == 200
+    headers = {"Authorization": f"Bearer {resp.json()['access_token']}"}
+    assert (await client.get("/me", headers=headers)).status_code == 200
+    monkeypatch.setattr(settings, "bayt_env", "stage")
+    assert (await client.get("/config/public")).json()["dev_login"] is False
+    assert (await client.post("/auth/dev", json={"tg_id": 1013})).status_code == 404
 
 
 async def test_logout_revokes_refresh(client: httpx.AsyncClient) -> None:

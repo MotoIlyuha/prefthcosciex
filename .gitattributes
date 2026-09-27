@@ -1,0 +1,7 @@
+# LF everywhere: shell scripts and configs are used inside Linux containers even
+# when the repository is cloned on Windows.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.woff2 binary
+*.csv -text

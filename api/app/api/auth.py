@@ -121,7 +121,7 @@ async def logout(user: CurrentUser, session: Session, response: Response) -> Non
 async def dev_login(body: DevLoginIn, session: Session) -> dict[str, Any]:
     """Local development and end-to-end tests only; absent on stage and production."""
     settings = get_settings()
-    if settings.is_production_like or not settings.dev_login:
+    if not settings.dev_login_enabled:
         raise ApiError(404, "not_found", "Не найдено")
     user, created = await ensure_user(
         session, TelegramUser(body.tg_id, body.first_name, body.username, "ru")

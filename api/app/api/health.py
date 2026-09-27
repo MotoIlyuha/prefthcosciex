@@ -40,4 +40,5 @@ async def public_config() -> dict[str, Any]:
         "bot_username": settings.telegram_bot_username,
         "bot_id": int(head) if head.isdigit() else None,
         "fipi_banner": None if load_fipi_config().approved else load_fipi_config().banner_ru,
+        "dev_login": settings.dev_login_enabled,
     }

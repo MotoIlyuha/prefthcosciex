@@ -81,7 +81,8 @@ services:
       context: .
       dockerfile: bot/Dockerfile
     <<: *env
-    restart: unless-stopped
+    # on-failure: without a token a local run exits cleanly and stays stopped.
+    restart: on-failure
     depends_on:
       api: {condition: service_started}
 
